@@ -1,0 +1,56 @@
+.invb-invoice-builder{
+// ===========toggle switch button==========
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 48px;
+      height: 22px;
+      margin: 0;
+      input { 
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+      .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        border-radius:50px;
+        background-color: $gray;
+        border: 1px solid $secondary;
+        transition: 0.5s;
+        &:before {
+          position: absolute;
+          content: "";
+          height: 16px;
+          width: 16px;
+          left: 1px;
+          bottom: 1px;
+          border-radius: 50%;
+          border: 1px solid $gray;
+          background-color: $white;
+          transition: .4s;
+        }
+      }
+      
+      input:checked {
+        + .slider {
+          background-color: $primary;
+          &:before{
+            transform: translateX(27px);
+          }
+        }
+      }
+      
+      input:focus {
+        + .slider {
+          box-shadow:inset 0 0 1px  $dark;
+        }
+      }
+    }
+        
+    
+}

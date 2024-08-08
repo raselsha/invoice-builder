@@ -1,0 +1,26 @@
+
+#invb-invoice-builder-metabox{
+    .inside{
+        margin: 0;
+        padding: 0;
+        main.invb-invoice-builder{
+            display: flex;
+            justify-content: space-between;
+            padding: 2% 10%;
+            .content{
+                width: 80%;
+                border: 1px solid $dark;
+            }
+            aside{
+                width: 20%;
+                ul{
+                    margin: 0;
+                    padding: 20px;
+                    padding-right: 0;
+                    list-style: none;
+                }
+            }
+            
+        }
+    }
+}

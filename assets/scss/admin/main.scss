@@ -1,0 +1,22 @@
+:root{
+    --invb-primary:#c79f62;
+    --invb-secondary:#666;
+    --invb-gray:#ddd;
+    --invb-light:#e5e5e5;
+    --invb-dark:#333;
+    --invb-black:#000;
+    --invb-white:#fff;
+}
+
+$primary : var(--invb-primary);
+$secondary : var(--invb-secondary);
+$light : var(--invb-light);
+$gray : var(--invb-gray);
+$dark : var(--invb-dark);
+$black : var(--invb-black);
+$white : var(--invb-white);
+
+@import '../font-awesome/fontawesome.scss';
+@import 'component';
+@import 'metabox';
+// @import 'settings';

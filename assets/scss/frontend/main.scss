@@ -1,0 +1,14 @@
+:root{
+    --pdfev-emd--vwr-primary:#c79f62;
+    --pdfev-emd--vwr-secondary:#666;
+    --pdfev-emd--vwr-light:#e5e5e5;
+    --pdfev-emd--vwr-dark:#333;
+    --pdfev-emd--vwr-black:#000;
+    --pdfev-emd--vwr-white:#fff;
+}
+@import '../font-awesome/fontawesome.scss';
+@import 'basic';
+@import 'list';
+@import 'grid';
+@import 'ebook';
+@import 'newsletter';

@@ -1,0 +1,49 @@
+
+.pdfev-embed-viewer{
+    
+    .archive-list-style{
+        overflow-x: scroll;
+        table{
+            text-align: left;
+            border-collapse: collapse;
+            transition: all .5s;
+            border:1px solid  var(--pdfev-emd-vwr-secondary);
+            width: 100%;
+
+            th{
+                background: var(--pdfev-emd-vwr-light);
+                padding: .5em;
+                border:0;
+                border-bottom: 1px solid  var(--pdfev-emd-vwr-secondary);
+                color:var(--pdfev-emd-vwr-dark);
+                &:first-child{
+                    text-align: start;
+                    width: 45%;
+                }
+                &:last-child{
+                    text-align: end;
+                }
+            }
+            td{
+                padding: .5em;
+                color: var(--pdfev-emd-vwr-secondary);
+                font-weight: normal;
+                border:0;
+                &:first-child{
+                    font-weight: bold;
+                    text-align: start;
+                    width: 45%;
+                }
+                &:last-child{
+                    text-align: end;
+                    font-weight: normal;
+                }
+            }
+            tr:nth-child(odd){
+                background: var(--pdfev-emd-vwr-light);
+                border:0;
+            }
+        }   
+            
+    }
+}

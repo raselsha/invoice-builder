@@ -1,0 +1,53 @@
+.pdfev-embed-viewer{
+    max-width:1240px;
+    margin: 0 auto;
+    width: 100%;
+
+    a{
+        text-decoration: none;
+        color: var(--pdfev-emd--vwr-primary);
+        font-weight: bold;
+    }
+    h1{
+        color:var(--pdfev-emd--vwr-dark); ;
+    }
+    .button{
+        background: var(--pdfev-emd--vwr-primary);
+        padding: 0.1em 0.5em;
+        border-radius: .25em;
+        color: var(--pdfev-emd--vwr-white);
+        font-weight: normal;
+    }
+    .download-btn{
+        @extend .button;
+        display: inline-flex;
+        align-items: center;
+        gap: .5em;
+    }
+    .pdf-viewer{
+        margin: .5em 0;
+        width: 100%;
+        height: 1024px;
+    }
+
+    .pagination {
+        width: max-content;
+        margin: 1rem auto;
+        .page-numbers{
+            display: inline-block;
+            padding: 5px 10px;
+            border: 1px solid var(--pdfev-emd--vwr-secondary);
+            &.current{
+                background-color: var(--pdfev-emd--vwr-primary);
+                color: var(--pdfev-emd--vwr-white);
+            }
+        }
+    }
+    
+}
+
+
+
+/*==================footer pagination================*/
+
+

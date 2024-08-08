@@ -1,0 +1,45 @@
+
+.pdfev-embed-viewer{
+    .archive-ebook-style{
+        display: flex;
+        justify-content: start;
+        align-items: stretch;
+        flex-wrap: wrap;
+        .grid-item{
+            width: 24%;
+            margin: 5px;
+            position: relative;
+            .image{
+                width: auto;
+                height: 280px;
+                img{
+                    max-width: 180px;
+                    height: 100%;
+                    object-fit: cover;
+                }
+            }
+            .content{
+                padding: 5px;
+                padding-left: 0;
+                h2{
+                    margin:0;
+                    padding:0;
+                    line-height: 2.5em;
+                    font-size: 1rem;
+                    font-weight: bold;
+                    a{
+                        color: var(--pdfev-emd-vwr-dark);
+                    }
+                }
+                .action{
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: end;
+                    a{
+                        font-weight: normal;
+                    }
+                }
+            }
+        }   
+    }
+}

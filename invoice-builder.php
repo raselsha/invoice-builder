@@ -38,6 +38,8 @@
             
             require_once INVB_Invoice_Builder_Path . 'inc/cpt-register.php';
             require_once INVB_Invoice_Builder_Path . 'inc/metabox-register.php';
+            require_once INVB_Invoice_Builder_Path . 'inc/enque-style-script.php';
+            require_once INVB_Invoice_Builder_Path . 'inc/metabox/Interface.php';
             
         }
 

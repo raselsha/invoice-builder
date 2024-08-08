@@ -1,0 +1,15 @@
+{
+  "name": "invoice-builder",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "sass --watch assets/scss/admin/main.scss assets/css/admin.css",
+    "frontend": "sass --watch assets/scss/frontend/main.scss assets/css/frontend.css"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@fortawesome/fontawesome-free": "^5.1.0-9"
+  }
+}

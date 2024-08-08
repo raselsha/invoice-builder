@@ -1,0 +1,82 @@
+.pdfev-embed-viewer{
+    .archive-newsletter-style{
+        display:flex;
+        justify-content: space-between;
+        flex-direction: column;
+        @media (min-width:992px){
+            flex-direction: row;
+        }
+        [data-tab-content] {
+            display: none;
+            transition: all .5s;
+        }
+        
+        .active[data-tab-content] {
+            display: block;
+            transition: all .5s;
+        }
+        .tabs{
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content:start;
+            background: var(--pdfev-emd-vwr-light);
+            list-style-type: none;
+            margin: 0;
+            padding: 0;
+            margin-right: 1em;
+            
+            overflow-y: scroll;
+            @media (min-width:992px){
+                width: 10%;
+                height: auto;
+            }
+            .tab{
+                cursor: pointer;
+                padding: .5em;
+                text-align: center;
+                font-weight: bold;
+                color: var(--pdfev-emd-vwr-secondary);
+                transition: all .5s;
+                &.active {
+                    color: var(--pdfev-emd-vwr-primary);
+                }
+                &:hover {
+                    color: var(--pdfev-emd-vwr-primary);
+                }
+            }
+            &-content{
+                width: 100%;
+                @media (min-width:992px){
+                    width: 90%;
+                }
+                table{
+                    text-align: left;
+                    border-collapse: collapse;
+                    transition: all .5s;
+                    border:0;
+                    width: 100%;
+
+                    th{
+                        background: var(--pdfev-emd-vwr-light);
+                        padding: .5em;
+                        border:0;
+                        border-bottom: 1px solid  var(--pdfev-emd-vwr-secondary);
+                        color:var(--pdfev-emd-vwr-dark);
+                    }
+                    td{
+                        padding: .5em;
+                        color: var(--pdfev-emd-vwr-secondary);
+                        font-weight: bold;
+                        border:0;
+                    }
+                    tr:nth-child(odd){
+                        background: var(--pdfev-emd-vwr-light);
+                        border:0;
+                    }
+                }
+            }
+        }
+        
+    }
+}

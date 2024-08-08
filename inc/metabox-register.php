@@ -19,19 +19,19 @@ if( ! class_exists('INVB_Invoice_Builder_Metabox')){
 
             public function metabox(){
 
-                add_meta_box('invb-invoice-builder',__('Invoice Builder', 'invoice-builder' ),[$this,'meta_box_layout'],'invb_invoice_builder','normal','high');
+                add_meta_box('invb-invoice-builder-metabox',__('Invoice Builder', 'invoice-builder' ),[$this,'meta_box_layout'],'invb_invoice_builder','normal','high');
             }
 
             public function meta_box_layout($post){
                 $post_id = $post->ID;
             ?>
-                <main class="pdfev-embed-viewer" id="pdfev-embed-metabox-tabs">
+                <main class="invb-invoice-builder" id="invb-invoice-builder">
                     <div class="content">
-                        <?php do_action('pdfev_emd_vwr_actn_tabs_content',$post_id); ?>
+                        <?php do_action('invb_invoice_builder_interface',$post_id); ?>
                     </div>
                     <aside>
                         <ul>
-                            <?php do_action('pdfev_emd_vwr_actn_nav_tabs',$post_id); ?>
+                            <?php do_action('invb_invoice_builder_tools',$post_id); ?>
                         </ul>
                     </aside>
                     

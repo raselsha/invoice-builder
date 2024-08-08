@@ -1,0 +1,11 @@
+.admin-wrap{
+    .nav-tab{
+        cursor: pointer;
+    }
+    .tab-content {
+        display: none;
+    }
+    .active {
+        display: block;
+    }
+}
