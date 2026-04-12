@@ -1,0 +1,185 @@
+body{
+	font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;
+	font-size: 14px;
+	line-height: 1.42857143;
+	color: #333;
+}
+b, strong {
+    font-weight: 700;
+}
+p {
+    margin: 0 0 10px;
+}
+h1, h2, h3, h4, h5, h6 {
+    font-family: inherit;
+    font-weight: 500;
+    line-height: 1.1;
+    color: inherit;
+}
+h4 {
+    font-size: 18px;
+}
+h1, h2, h3, h4, h5, h6 {
+    margin-top: 10px;
+    margin-bottom:0px;
+}
+header{
+	border-bottom: 2px solid #BF1E2D;
+}
+input[type="text"],textarea{padding:5px;width: 190px;border:1px solid #999;}
+
+a:link{color:#478ed4;}
+a:visited{color:#478ed4;}
+a:hover{color:#3270ae;}
+a:active{color:#478ed4;}
+
+.text-left{
+	text-align:left;
+}
+.text-right{
+	text-align: right;
+}
+.text-center{
+	text-align: center;
+}
+.container{
+	width: 780px;
+	margin: 0 auto;
+	padding: 1% 5%;
+}
+.logo{}
+.address{
+	margin-top:53px;
+}
+.address p{
+	margin-bottom:0px;
+}
+.content{
+	min-height: 920px;
+}
+.title{
+	margin-bottom:20px; 
+}
+.invoice_info{
+	margin:0px;
+	margin-bottom:10px;
+	text-align: right;
+}
+.data table{
+	border-spacing:0px;
+    border-collapse: separate;
+	border-right:1px solid #333; 
+}
+
+.data table th,.data table td{
+	border-left:1px solid #333;
+	border-top:1px solid #333;
+}
+.data table td{
+	border-bottom:1px solid #333;
+}
+
+/*=========*/
+.calculation table{
+	border-spacing:0px;
+    border-collapse: separate;
+	border-right:0px solid #333; 
+}
+
+.calculation table th,.calculation table td{
+	border-left:0px solid #333;
+	border-top:0px solid #333;
+}
+.calculation table td{
+	border-bottom:0px solid #333;
+}
+.active{
+	background: #eee;
+}
+
+.terms{
+	margin-top: 50px;
+}
+footer{
+	text-align: center;
+	border-top:2px solid #BF1E2D;
+}
+.service{
+		color:#BF1E2D;
+	}
+.invoice-container{
+	display: flex;
+	justify-content: space-between;
+	align-items: start;
+	gap: 20px;
+}
+.client-info{
+	width: 50%;
+}
+.owner-info{
+	width: 50%;
+	text-align: right;
+}
+.table-container,
+.table{
+	width: 100%;
+	border-collapse: collapse;
+}
+
+.text-center{
+	text-align: center;
+}
+.text-left{
+	text-align: left;
+}
+.text-right{
+	text-align: right;
+}
+.pricing-table th{
+	background-color: #ddd;
+}
+.pricing-table th,
+.pricing-table td{
+	padding: 5px;
+}
+.summery-table{
+	border-top: 1px solid #ddd; 
+	margin-top: 30px;
+}
+@media print{
+	body{
+		font-size: 16px;
+	}
+	a[href]:after {
+    	content: none !important;
+  	}
+  	.data table{
+		border-spacing:0px;
+	    border-collapse: separate;
+		border-right:1px solid #000; 
+	}
+
+	.data table th,.data table td{
+		border-left:1px solid #000;
+		border-top:1px solid #000;
+	}
+	.data table td{
+		border-bottom:1px solid #000;
+	}
+	.service{
+		color:#BF1E2D;
+	}
+	.invoice-container{
+		display: flex;
+		justify-content: space-between;
+		align-items: start;
+		gap: 20px;
+	}
+	.client-info{
+		width: 50%;
+	}
+	.owner-info{
+		width: 50%;
+	}
+}
+
