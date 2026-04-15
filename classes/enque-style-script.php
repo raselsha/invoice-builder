@@ -21,7 +21,7 @@ if( ! class_exists('INVB_Invoice_Builder_Enque') ){
         public function backend_style(){
             wp_enqueue_style('main',INVB_Invoice_Builder_URL.'assets/css/admin.css',['wp-color-picker'],INVB_Invoice_Builder_VERSION,'all');
             wp_enqueue_media();       
-            wp_enqueue_script( 'main', INVB_Invoice_Builder_URL.'assets/js/admin.js', ['jquery','wp-color-picker','jquery-ui-core'], INVB_Invoice_Builder_VERSION, true );
+            wp_enqueue_script( 'INVB_main', INVB_Invoice_Builder_URL.'assets/js/admin.js', ['jquery','wp-color-picker','jquery-ui-core'], INVB_Invoice_Builder_VERSION, true );
         }
     }
     

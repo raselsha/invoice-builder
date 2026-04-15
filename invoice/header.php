@@ -19,7 +19,7 @@
 						<td width="60%">
 							<div class="address text-right">
 								<p><a href="http://www.lieusoft.com">www.lieusoft.com</a><br> 
-							Call: <strong>01737266685</strong>, Email:  <strong>info@lieusoft.com</strong></p>
+							Email:  <strong>info@lieusoft.com</strong>, WhatsApp: <strong>01737266685</strong></p>
 							</div>
 						</td>
 					</tr>

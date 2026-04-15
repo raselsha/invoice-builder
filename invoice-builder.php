@@ -36,10 +36,15 @@
 
         public function include_plugin_files() {
             
-            require_once INVB_Invoice_Builder_Path . 'inc/cpt-register.php';
-            require_once INVB_Invoice_Builder_Path . 'inc/metabox-register.php';
-            require_once INVB_Invoice_Builder_Path . 'inc/enque-style-script.php';
-            require_once INVB_Invoice_Builder_Path . 'inc/metabox/Interface.php';
+            require_once INVB_Invoice_Builder_Path . 'classes/cpt-register.php';
+            require_once INVB_Invoice_Builder_Path . 'classes/metabox-register.php';
+            require_once INVB_Invoice_Builder_Path . 'classes/enque-style-script.php';
+            require_once INVB_Invoice_Builder_Path . 'classes/admin-settings.php';
+            require_once INVB_Invoice_Builder_Path . 'classes/metabox/Interface.php';
+
+            require_once INVB_Invoice_Builder_Path . 'classes/settings/General.php';
+            require_once INVB_Invoice_Builder_Path . 'classes/settings/Shortcode.php';
+            require_once INVB_Invoice_Builder_Path . 'classes/settings/Support.php';
             
         }
 
