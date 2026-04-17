@@ -1,0 +1,419 @@
+/* ==========================================================================
+   WP Invoice Manager – Admin Styles
+   ========================================================================== */
+
+:root {
+	--wim-primary:    #1a1a2e;
+	--wim-accent:     #e94560;
+	--wim-accent2:    #0f3460;
+	--wim-surface:    #ffffff;
+	--wim-surface2:   #f8f9fc;
+	--wim-border:     #e2e8f0;
+	--wim-text:       #1e293b;
+	--wim-muted:      #64748b;
+	--wim-success:    #10b981;
+	--wim-warning:    #f59e0b;
+	--wim-danger:     #ef4444;
+	--wim-info:       #3b82f6;
+	--wim-radius:     8px;
+	--wim-shadow:     0 1px 3px rgba(0,0,0,.08), 0 4px 16px rgba(0,0,0,.04);
+}
+
+/* ── Layout wrapper ─────────────────────────────────────── */
+.wim-wrap {
+	max-width: 1200px;
+	padding: 24px 24px 48px;
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+	color: var(--wim-text);
+}
+
+/* ── Page header ─────────────────────────────────────────── */
+.wim-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: 24px;
+	padding-bottom: 20px;
+	border-bottom: 2px solid var(--wim-border);
+}
+.wim-header h1 {
+	font-size: 22px;
+	font-weight: 700;
+	color: var(--wim-primary);
+	margin: 0;
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+.wim-header h1 .dashicons {
+	color: var(--wim-accent);
+	font-size: 26px;
+	width: 26px;
+	height: 26px;
+}
+
+/* ── Buttons ─────────────────────────────────────────────── */
+.wim-btn {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 8px 18px;
+	border-radius: var(--wim-radius);
+	font-size: 13px;
+	font-weight: 600;
+	cursor: pointer;
+	text-decoration: none;
+	border: none;
+	transition: all .15s ease;
+	line-height: 1.4;
+}
+.wim-btn-primary {
+	background: var(--wim-accent);
+	color: #fff;
+}
+.wim-btn-primary:hover { background: #c73652; color: #fff; }
+
+.wim-btn-secondary {
+	background: var(--wim-surface);
+	color: var(--wim-text);
+	border: 1.5px solid var(--wim-border);
+}
+.wim-btn-secondary:hover { border-color: #94a3b8; color: var(--wim-text); }
+
+.wim-btn-danger {
+	background: var(--wim-danger);
+	color: #fff;
+}
+.wim-btn-danger:hover { background: #dc2626; color: #fff; }
+
+.wim-btn-success {
+	background: var(--wim-success);
+	color: #fff;
+}
+.wim-btn-success:hover { background: #059669; color: #fff; }
+
+.wim-btn-sm { padding: 5px 12px; font-size: 12px; }
+
+/* ── Notice ──────────────────────────────────────────────── */
+.wim-notice {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 12px 18px;
+	border-radius: var(--wim-radius);
+	margin-bottom: 20px;
+	font-size: 13px;
+	font-weight: 500;
+}
+.wim-notice-success { background: #ecfdf5; color: #065f46; border-left: 4px solid var(--wim-success); }
+.wim-notice-error   { background: #fef2f2; color: #991b1b; border-left: 4px solid var(--wim-danger); }
+.wim-notice-info    { background: #eff6ff; color: #1e40af; border-left: 4px solid var(--wim-info); }
+
+/* ── Status filter tabs ──────────────────────────────────── */
+.wim-status-tabs {
+	display: flex;
+	gap: 4px;
+	margin-bottom: 20px;
+	flex-wrap: wrap;
+}
+.wim-status-tab {
+	padding: 6px 14px;
+	border-radius: 20px;
+	font-size: 12px;
+	font-weight: 600;
+	text-decoration: none;
+	color: var(--wim-muted);
+	background: var(--wim-surface2);
+	border: 1.5px solid transparent;
+	transition: all .15s;
+}
+.wim-status-tab:hover { color: var(--wim-primary); border-color: var(--wim-border); }
+.wim-status-tab.active {
+	background: var(--wim-primary);
+	color: #fff;
+}
+.wim-status-tab .count {
+	background: rgba(255,255,255,.2);
+	border-radius: 10px;
+	padding: 1px 7px;
+	font-size: 11px;
+	margin-left: 4px;
+}
+.wim-status-tab:not(.active) .count {
+	background: var(--wim-border);
+	color: var(--wim-muted);
+}
+
+/* ── Table ───────────────────────────────────────────────── */
+.wim-table-wrap {
+	background: var(--wim-surface);
+	border-radius: var(--wim-radius);
+	box-shadow: var(--wim-shadow);
+	overflow: hidden;
+}
+.wim-table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 13px;
+}
+.wim-table thead th {
+	background: var(--wim-primary);
+	color: #fff;
+	padding: 12px 16px;
+	text-align: left;
+	font-weight: 600;
+	font-size: 12px;
+	text-transform: uppercase;
+	letter-spacing: .05em;
+}
+.wim-table tbody tr {
+	border-bottom: 1px solid var(--wim-border);
+	transition: background .1s;
+}
+.wim-table tbody tr:hover { background: var(--wim-surface2); }
+.wim-table tbody tr:last-child { border-bottom: none; }
+.wim-table tbody td {
+	padding: 13px 16px;
+	vertical-align: middle;
+}
+.wim-table .col-actions {
+	display: flex;
+	gap: 8px;
+	align-items: center;
+}
+.wim-table .col-amount {
+	font-weight: 700;
+	font-variant-numeric: tabular-nums;
+}
+.wim-table-empty {
+	text-align: center;
+	padding: 60px 20px;
+	color: var(--wim-muted);
+}
+.wim-table-empty .dashicons {
+	font-size: 48px;
+	width: 48px;
+	height: 48px;
+	display: block;
+	margin: 0 auto 16px;
+	color: var(--wim-border);
+}
+
+/* ── Status badge ────────────────────────────────────────── */
+.wim-badge {
+	display: inline-flex;
+	align-items: center;
+	padding: 3px 10px;
+	border-radius: 20px;
+	font-size: 11px;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: .04em;
+}
+.wim-badge-draft     { background: #f1f5f9; color: #475569; }
+.wim-badge-sent      { background: #eff6ff; color: #1d4ed8; }
+.wim-badge-paid      { background: #ecfdf5; color: #065f46; }
+.wim-badge-overdue   { background: #fef2f2; color: #991b1b; }
+.wim-badge-cancelled { background: #fafafa; color: #9ca3af; }
+
+/* ── Invoice form ────────────────────────────────────────── */
+.wim-form-wrap {
+	background: var(--wim-surface);
+	border-radius: var(--wim-radius);
+	box-shadow: var(--wim-shadow);
+	padding: 32px;
+}
+.wim-form-grid {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 24px;
+}
+.wim-form-grid-3 {
+	display: grid;
+	grid-template-columns: 1fr 1fr 1fr;
+	gap: 16px;
+}
+@media (max-width: 900px) {
+	.wim-form-grid, .wim-form-grid-3 { grid-template-columns: 1fr; }
+}
+
+.wim-section {
+	margin-bottom: 32px;
+}
+.wim-section-title {
+	font-size: 14px;
+	font-weight: 700;
+	color: var(--wim-primary);
+	text-transform: uppercase;
+	letter-spacing: .06em;
+	margin: 0 0 16px;
+	padding-bottom: 10px;
+	border-bottom: 2px solid var(--wim-border);
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+.wim-section-title .dashicons {
+	color: var(--wim-accent);
+}
+
+.wim-field {
+	margin-bottom: 16px;
+}
+.wim-field label {
+	display: block;
+	font-size: 12px;
+	font-weight: 600;
+	color: var(--wim-muted);
+	text-transform: uppercase;
+	letter-spacing: .05em;
+	margin-bottom: 6px;
+}
+.wim-field input[type="text"],
+.wim-field input[type="email"],
+.wim-field input[type="tel"],
+.wim-field input[type="date"],
+.wim-field input[type="number"],
+.wim-field select,
+.wim-field textarea {
+	width: 100%;
+	padding: 9px 12px;
+	border: 1.5px solid var(--wim-border);
+	border-radius: var(--wim-radius);
+	font-size: 13px;
+	color: var(--wim-text);
+	background: var(--wim-surface);
+	transition: border-color .15s, box-shadow .15s;
+	box-sizing: border-box;
+}
+.wim-field input:focus,
+.wim-field select:focus,
+.wim-field textarea:focus {
+	outline: none;
+	border-color: var(--wim-accent);
+	box-shadow: 0 0 0 3px rgba(233,69,96,.1);
+}
+.wim-field textarea { min-height: 80px; resize: vertical; }
+
+/* ── Line items ──────────────────────────────────────────── */
+.wim-items-table {
+	width: 100%;
+	border-collapse: collapse;
+}
+.wim-items-table thead th {
+	background: var(--wim-surface2);
+	padding: 10px 12px;
+	text-align: left;
+	font-size: 11px;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: .05em;
+	color: var(--wim-muted);
+	border-bottom: 2px solid var(--wim-border);
+}
+.wim-items-table tbody td {
+	padding: 8px;
+	vertical-align: middle;
+	border-bottom: 1px solid var(--wim-border);
+}
+.wim-items-table tbody tr:last-child td { border-bottom: none; }
+.wim-items-table input {
+	width: 100%;
+	padding: 8px 10px;
+	border: 1.5px solid var(--wim-border);
+	border-radius: 6px;
+	font-size: 13px;
+	color: var(--wim-text);
+	box-sizing: border-box;
+}
+.wim-items-table input:focus {
+	outline: none;
+	border-color: var(--wim-accent);
+}
+.wim-items-table .col-desc  { width: 40%; }
+.wim-items-table .col-qty   { width: 12%; }
+.wim-items-table .col-price { width: 16%; }
+.wim-items-table .col-tax   { width: 14%; }
+.wim-items-table .col-total { width: 14%; font-weight: 700; }
+.wim-items-table .col-del   { width: 4%; text-align: center; }
+
+.wim-remove-row {
+	background: none;
+	border: none;
+	cursor: pointer;
+	color: var(--wim-danger);
+	padding: 4px;
+	border-radius: 4px;
+}
+.wim-remove-row:hover { background: #fef2f2; }
+
+.wim-add-item-row {
+	padding: 12px 0 0;
+}
+
+/* ── Totals ──────────────────────────────────────────────── */
+.wim-totals {
+	display: flex;
+	justify-content: flex-end;
+	margin-top: 20px;
+}
+.wim-totals-box {
+	min-width: 280px;
+	background: var(--wim-surface2);
+	border: 1.5px solid var(--wim-border);
+	border-radius: var(--wim-radius);
+	overflow: hidden;
+}
+.wim-totals-row {
+	display: flex;
+	justify-content: space-between;
+	padding: 10px 16px;
+	font-size: 13px;
+	border-bottom: 1px solid var(--wim-border);
+}
+.wim-totals-row:last-child { border-bottom: none; }
+.wim-totals-row.total-final {
+	background: var(--wim-primary);
+	color: #fff;
+	font-weight: 700;
+	font-size: 16px;
+}
+.wim-totals-label { color: var(--wim-muted); }
+.wim-totals-row.total-final .wim-totals-label { color: rgba(255,255,255,.7); }
+
+/* ── Form actions ────────────────────────────────────────── */
+.wim-form-actions {
+	display: flex;
+	gap: 12px;
+	align-items: center;
+	padding-top: 24px;
+	border-top: 2px solid var(--wim-border);
+	margin-top: 8px;
+}
+
+/* ── Settings ────────────────────────────────────────────── */
+.wim-settings-wrap {
+	max-width: 640px;
+}
+.wim-settings-wrap .wim-form-wrap { padding: 28px; }
+
+/* ── Stats cards ─────────────────────────────────────────── */
+.wim-stats {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+	gap: 16px;
+	margin-bottom: 28px;
+}
+.wim-stat-card {
+	background: var(--wim-surface);
+	border-radius: var(--wim-radius);
+	box-shadow: var(--wim-shadow);
+	padding: 20px 22px;
+	border-left: 4px solid var(--wim-border);
+}
+.wim-stat-card.paid     { border-left-color: var(--wim-success); }
+.wim-stat-card.overdue  { border-left-color: var(--wim-danger); }
+.wim-stat-card.draft    { border-left-color: var(--wim-muted); }
+.wim-stat-card.all      { border-left-color: var(--wim-accent); }
+.wim-stat-value { font-size: 26px; font-weight: 800; color: var(--wim-primary); }
+.wim-stat-label { font-size: 12px; color: var(--wim-muted); font-weight: 600; text-transform: uppercase; letter-spacing: .05em; margin-top: 4px; }
