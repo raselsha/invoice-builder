@@ -27,6 +27,13 @@ if ( empty( $items ) ) {
 	$items = array( array( 'description' => '', 'quantity' => 1, 'unit_price' => 0, 'tax_rate' => $def_tax ) );
 }
 
+// Terms & Conditions checklist – a brand-new invoice starts with everything checked;
+// an existing invoice keeps exactly what was saved for it (even if that's none).
+$all_terms      = $all_terms ?? array();
+$selected_terms = $is_edit
+	? array_map( 'absint', (array) $invoice['terms_selected'] )
+	: array_keys( $all_terms );
+
 function wim_val( $invoice, $key, $default = '' ) {
 	return $invoice ? esc_attr( $invoice[ $key ] ?? $default ) : esc_attr( $default );
 }
@@ -46,8 +53,9 @@ function wim_val( $invoice, $key, $default = '' ) {
 
 	<?php if ( isset( $_GET['message'] ) ) :
 		$msgs = array(
-			'updated' => __( '✓ Invoice updated successfully.', 'wp-invoice-manager' ),
-			'sent'    => __( '✓ Invoice sent to client.', 'wp-invoice-manager' ),
+			'updated'            => __( '✓ Invoice updated successfully.', 'wp-invoice-manager' ),
+			'sent'               => __( '✓ Invoice sent to client.', 'wp-invoice-manager' ),
+			'share_regenerated'  => __( '✓ Share link regenerated — the old link no longer works.', 'wp-invoice-manager' ),
 		);
 	?>
 		<div class="wim-notice wim-notice-success">
@@ -178,6 +186,7 @@ function wim_val( $invoice, $key, $default = '' ) {
 				<table class="wim-items-table">
 					<thead>
 						<tr>
+							<th class="col-drag"></th>
 							<th class="col-desc"><?php esc_html_e( 'Description', 'wp-invoice-manager' ); ?></th>
 							<th class="col-qty"><?php esc_html_e( 'Qty', 'wp-invoice-manager' ); ?></th>
 							<th class="col-price"><?php esc_html_e( 'Unit Price', 'wp-invoice-manager' ); ?></th>
@@ -189,6 +198,11 @@ function wim_val( $invoice, $key, $default = '' ) {
 					<tbody id="wim-items-body">
 						<?php foreach ( $items as $i => $item ) : ?>
 						<tr class="wim-item-row">
+							<td class="col-drag">
+								<span class="wim-drag-handle" title="<?php esc_attr_e( 'Drag to reorder', 'wp-invoice-manager' ); ?>">
+									<span class="dashicons dashicons-menu"></span>
+								</span>
+							</td>
 							<td class="col-desc">
 								<input type="text" name="items[<?php echo $i; ?>][description]"
 									value="<?php echo esc_attr( $item['description'] ); ?>"
@@ -261,6 +275,21 @@ function wim_val( $invoice, $key, $default = '' ) {
 				<div class="wim-field">
 					<textarea name="notes" rows="4"><?php echo $invoice ? esc_textarea( $invoice['notes'] ) : ''; ?></textarea>
 				</div>
+
+				<?php if ( ! empty( $all_terms ) ) : ?>
+				<div class="wim-field">
+					<label><?php esc_html_e( 'Terms & Conditions to print with this invoice', 'wp-invoice-manager' ); ?></label>
+					<div class="wim-terms-checklist">
+						<?php foreach ( $all_terms as $i => $term ) : ?>
+						<label class="wim-term-check">
+							<input type="checkbox" name="terms_selected[]" value="<?php echo (int) $i; ?>"
+								<?php checked( in_array( (int) $i, $selected_terms, true ) ); ?>>
+							<span><?php echo esc_html( $term ); ?></span>
+						</label>
+						<?php endforeach; ?>
+					</div>
+				</div>
+				<?php endif; ?>
 			</div>
 
 			<!-- ── Actions ── -->
@@ -284,6 +313,44 @@ function wim_val( $invoice, $key, $default = '' ) {
 						<span class="dashicons dashicons-printer" style="font-size:14px;width:14px;height:14px;margin-top:3px"></span>
 						<?php esc_html_e( 'Print / PDF', 'wp-invoice-manager' ); ?>
 					</a>
+
+					<?php if ( ! empty( $share_url ) ) :
+						$regen_url = wp_nonce_url(
+							add_query_arg( array(
+								'action'     => 'wp_im_regenerate_share_link',
+								'invoice_id' => $post_id,
+							), admin_url( 'admin-post.php' ) ),
+							'wp_im_share_' . $post_id,
+							'wp_im_share_nonce'
+						);
+					?>
+					<div class="wim-share-wrap">
+						<button type="button" class="wim-btn wim-btn-secondary wim-share-btn">
+							<span class="dashicons dashicons-share" style="font-size:14px;width:14px;height:14px;margin-top:3px"></span>
+							<?php esc_html_e( 'Share', 'wp-invoice-manager' ); ?>
+						</button>
+						<div class="wim-share-popover">
+							<label><?php esc_html_e( 'Shareable link — anyone with this link can view the invoice, no login needed.', 'wp-invoice-manager' ); ?></label>
+							<div class="wim-share-row">
+								<input type="text" class="wim-share-url" value="<?php echo esc_url( $share_url ); ?>" readonly onclick="this.select();">
+								<div class="wim-share-icon-actions">
+									<button type="button" class="wim-share-icon-btn wim-share-copy" title="<?php esc_attr_e( 'Copy link', 'wp-invoice-manager' ); ?>" aria-label="<?php esc_attr_e( 'Copy link', 'wp-invoice-manager' ); ?>">
+										<span class="dashicons dashicons-admin-page"></span>
+									</button>
+									<a href="<?php echo esc_url( $share_url ); ?>" target="_blank" rel="noopener" class="wim-share-icon-btn wim-share-open" title="<?php esc_attr_e( 'Open link in new tab', 'wp-invoice-manager' ); ?>" aria-label="<?php esc_attr_e( 'Open link in new tab', 'wp-invoice-manager' ); ?>">
+										<span class="dashicons dashicons-external"></span>
+									</a>
+								</div>
+							</div>
+							<a href="<?php echo esc_url( $share_url ); ?>" target="_blank" rel="noopener" class="wim-share-link-text"><?php echo esc_html( $share_url ); ?></a>
+							<p class="wim-share-howto"><?php esc_html_e( '1) Click Copy — 2) Paste it in WhatsApp, SMS, or email and send it to your client. They can open it and view/print the invoice without logging in.', 'wp-invoice-manager' ); ?></p>
+							<a href="<?php echo esc_url( $regen_url ); ?>" class="wim-share-regenerate"
+								onclick="return confirm('<?php echo esc_js( __( 'This will invalidate the current link — anyone using the old one will lose access. Continue?', 'wp-invoice-manager' ) ); ?>');">
+								<?php esc_html_e( 'Regenerate link', 'wp-invoice-manager' ); ?>
+							</a>
+						</div>
+					</div>
+					<?php endif; ?>
 
 					<?php if ( ! empty( $invoice['client_email'] ) ) : ?>
 					<button type="submit"

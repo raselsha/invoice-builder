@@ -114,6 +114,20 @@ foreach ( WP_IM_Invoice::get_all() as $_p ) {
 						'wp_im_delete_' . $post->ID,
 						'wp_im_delete_nonce'
 					);
+					$share_token = WP_IM_Invoice::get_or_create_share_token( $post->ID );
+					$share_url   = add_query_arg( array(
+						'action'     => 'wp_im_view_shared_invoice',
+						'invoice_id' => $post->ID,
+						'token'      => $share_token,
+					), admin_url( 'admin-post.php' ) );
+					$regen_url = wp_nonce_url(
+						add_query_arg( array(
+							'action'     => 'wp_im_regenerate_share_link',
+							'invoice_id' => $post->ID,
+						), admin_url( 'admin-post.php' ) ),
+						'wp_im_share_' . $post->ID,
+						'wp_im_share_nonce'
+					);
 				?>
 				<tr>
 					<td><strong><?php echo esc_html( $inv['number'] ); ?></strong></td>
@@ -131,6 +145,12 @@ foreach ( WP_IM_Invoice::get_all() as $_p ) {
 					<td class="col-amount"><?php echo esc_html( $symbol . number_format( $inv['totals']['total'], 2 ) ); ?></td>
 					<td>
 						<div class="col-actions">
+							<a href="<?php echo esc_url( $print_url ); ?>"
+							   target="_blank"
+							   class="wim-btn wim-btn-secondary wim-btn-sm">
+								<span class="dashicons dashicons-visibility" style="font-size:14px;width:14px;height:14px;margin-top:2px"></span>
+								<?php esc_html_e( 'View', 'wp-invoice-manager' ); ?>
+							</a>
 							<a href="<?php echo esc_url( add_query_arg( array( 'page' => 'wp-im-new-invoice', 'invoice_id' => $post->ID ), admin_url( 'admin.php' ) ) ); ?>"
 							   class="wim-btn wim-btn-secondary wim-btn-sm">
 								<span class="dashicons dashicons-edit" style="font-size:14px;width:14px;height:14px;margin-top:2px"></span>
@@ -142,6 +162,32 @@ foreach ( WP_IM_Invoice::get_all() as $_p ) {
 								<span class="dashicons dashicons-printer" style="font-size:14px;width:14px;height:14px;margin-top:2px"></span>
 								<?php esc_html_e( 'Print', 'wp-invoice-manager' ); ?>
 							</a>
+							<div class="wim-share-wrap">
+								<button type="button" class="wim-btn wim-btn-secondary wim-btn-sm wim-share-btn">
+									<span class="dashicons dashicons-share" style="font-size:14px;width:14px;height:14px;margin-top:2px"></span>
+									<?php esc_html_e( 'Share', 'wp-invoice-manager' ); ?>
+								</button>
+								<div class="wim-share-popover">
+									<label><?php esc_html_e( 'Shareable link — anyone with this link can view the invoice, no login needed.', 'wp-invoice-manager' ); ?></label>
+									<div class="wim-share-row">
+										<input type="text" class="wim-share-url" value="<?php echo esc_url( $share_url ); ?>" readonly onclick="this.select();">
+										<div class="wim-share-icon-actions">
+											<button type="button" class="wim-share-icon-btn wim-share-copy" title="<?php esc_attr_e( 'Copy link', 'wp-invoice-manager' ); ?>" aria-label="<?php esc_attr_e( 'Copy link', 'wp-invoice-manager' ); ?>">
+												<span class="dashicons dashicons-admin-page"></span>
+											</button>
+											<a href="<?php echo esc_url( $share_url ); ?>" target="_blank" rel="noopener" class="wim-share-icon-btn wim-share-open" title="<?php esc_attr_e( 'Open link in new tab', 'wp-invoice-manager' ); ?>" aria-label="<?php esc_attr_e( 'Open link in new tab', 'wp-invoice-manager' ); ?>">
+												<span class="dashicons dashicons-external"></span>
+											</a>
+										</div>
+									</div>
+									<a href="<?php echo esc_url( $share_url ); ?>" target="_blank" rel="noopener" class="wim-share-link-text"><?php echo esc_html( $share_url ); ?></a>
+									<p class="wim-share-howto"><?php esc_html_e( '1) Click Copy — 2) Paste it in WhatsApp, SMS, or email and send it to your client. They can open it and view/print the invoice without logging in.', 'wp-invoice-manager' ); ?></p>
+									<a href="<?php echo esc_url( $regen_url ); ?>" class="wim-share-regenerate"
+										onclick="return confirm('<?php echo esc_js( __( 'This will invalidate the current link — anyone using the old one will lose access. Continue?', 'wp-invoice-manager' ) ); ?>');">
+										<?php esc_html_e( 'Regenerate link', 'wp-invoice-manager' ); ?>
+									</a>
+								</div>
+							</div>
 							<a href="<?php echo esc_url( $delete_url ); ?>"
 							   class="wim-btn wim-btn-danger wim-btn-sm wim-delete-link">
 								<span class="dashicons dashicons-trash" style="font-size:14px;width:14px;height:14px;margin-top:2px"></span>

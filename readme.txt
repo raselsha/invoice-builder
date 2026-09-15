@@ -4,7 +4,7 @@ Tags:              invoice, billing, payment, PDF, client management
 Requires at least: 5.8
 Tested up to:      6.5
 Requires PHP:      7.4
-Stable tag:        1.0.0
+Stable tag:        1.1.0
 License:           GPLv2 or later
 License URI:       https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -75,6 +75,18 @@ Invoice meta is stored as WordPress post meta on the `wp_invoice` custom post ty
 Yes – all strings use `__()` / `_e()` with the `wp-invoice-manager` text domain.
 
 == Changelog ==
+
+= 1.1.0 =
+* Settings: custom Terms & Conditions repeater (card style, view/edit toggle, drag-to-reorder).
+* Invoice form: per-invoice checklist to choose which saved Terms & Conditions print with that invoice.
+* Settings: configurable invoice colors — Primary/Accent, Header, and Date & Status Bar (background + text separately), a custom saturation/hue color picker, and 8 quick color themes.
+* Public, tokenised "Share" link per invoice — view/print without logging in, with copy/open/regenerate controls (list page and edit screen).
+* Invoice list: new "View" action, right-aligned Actions column.
+* Settings: custom-styled dropdown (replaces the native currency `<select>`), consistent field heights.
+* Settings: configurable invoice footer text with `{site_name}` / `{date}` placeholders.
+* Drag-to-reorder for invoice line items and Terms & Conditions.
+* Fix: a line item with quantity/price but a blank description was silently dropped on save, causing the saved total to differ from what the form showed.
+* Fix: admin CSS/JS now cache-bust on file change (was pinned to a static version string).
 
 = 1.0.0 =
 * Initial release.

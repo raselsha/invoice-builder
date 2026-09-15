@@ -26,6 +26,8 @@ class WP_IM_Invoice {
 	const META_CURRENCY      = '_invoice_currency';
 	const META_NOTES         = '_invoice_notes';
 	const META_DISCOUNT      = '_invoice_discount';
+	const META_TERMS_SELECTED= '_invoice_terms_selected';
+	const META_SHARE_TOKEN   = '_invoice_share_token';
 
 	/** @var int */
 	private $post_id;
@@ -176,6 +178,7 @@ class WP_IM_Invoice {
 			self::META_CURRENCY       => sanitize_text_field( $data['currency'] ?? 'USD' ),
 			self::META_NOTES          => sanitize_textarea_field( $data['notes'] ?? '' ),
 			self::META_DISCOUNT       => floatval( $data['discount'] ?? 0 ),
+			self::META_TERMS_SELECTED => array_map( 'absint', (array) ( $data['terms_selected'] ?? array() ) ),
 		);
 
 		foreach ( $map as $key => $value ) {
@@ -196,16 +199,25 @@ class WP_IM_Invoice {
 		$wpdb->delete( $table, array( 'invoice_id' => $this->post_id ), array( '%d' ) );
 
 		foreach ( $items as $item ) {
-			if ( empty( $item['description'] ) ) {
+			$description = sanitize_text_field( $item['description'] ?? '' );
+			$quantity    = floatval( $item['quantity'] ?? 0 );
+			$unit_price  = floatval( $item['unit_price'] ?? 0 );
+
+			// Skip a row only if it's entirely empty — don't silently drop a
+			// row just because the description was left blank while a
+			// quantity/price was filled in (that used to make the saved
+			// total disagree with what the form showed before saving).
+			if ( '' === $description && 0.0 === $quantity && 0.0 === $unit_price ) {
 				continue;
 			}
+
 			$wpdb->insert(
 				$table,
 				array(
 					'invoice_id'  => $this->post_id,
-					'description' => sanitize_text_field( $item['description'] ),
-					'quantity'    => floatval( $item['quantity'] ?? 1 ),
-					'unit_price'  => floatval( $item['unit_price'] ?? 0 ),
+					'description' => $description,
+					'quantity'    => $quantity,
+					'unit_price'  => $unit_price,
 					'tax_rate'    => floatval( $item['tax_rate'] ?? 0 ),
 				),
 				array( '%d', '%s', '%f', '%f', '%f' )
@@ -278,9 +290,39 @@ class WP_IM_Invoice {
 			'currency'       => get_post_meta( $this->post_id, self::META_CURRENCY, true ),
 			'notes'          => get_post_meta( $this->post_id, self::META_NOTES, true ),
 			'discount'       => floatval( get_post_meta( $this->post_id, self::META_DISCOUNT, true ) ),
+			'terms_selected' => (array) get_post_meta( $this->post_id, self::META_TERMS_SELECTED, true ),
+			'share_token'    => get_post_meta( $this->post_id, self::META_SHARE_TOKEN, true ),
 			'items'          => $this->get_items(),
 			'totals'         => $this->calculate_totals(),
 		);
+	}
+
+	/**
+	 * Get this invoice's public share token, generating one on first use.
+	 *
+	 * @param int $post_id
+	 * @return string
+	 */
+	public static function get_or_create_share_token( $post_id ) {
+		$post_id = absint( $post_id );
+		$token   = get_post_meta( $post_id, self::META_SHARE_TOKEN, true );
+		if ( ! $token ) {
+			$token = wp_generate_password( 32, false, false );
+			update_post_meta( $post_id, self::META_SHARE_TOKEN, $token );
+		}
+		return $token;
+	}
+
+	/**
+	 * Replace an invoice's share token with a new one, invalidating the old link.
+	 *
+	 * @param int $post_id
+	 * @return string New token.
+	 */
+	public static function regenerate_share_token( $post_id ) {
+		$token = wp_generate_password( 32, false, false );
+		update_post_meta( absint( $post_id ), self::META_SHARE_TOKEN, $token );
+		return $token;
 	}
 
 	/**
@@ -314,6 +356,81 @@ class WP_IM_Invoice {
 			'AUD' => 'AUD – Australian Dollar (A$)',
 			'INR' => 'INR – Indian Rupee (₹)',
 		);
+	}
+
+	/**
+	 * Default Terms & Conditions lines used to seed the settings repeater.
+	 *
+	 * @return string[]
+	 */
+	public static function get_default_terms() {
+		return array(
+			__( 'Domain and hosting services are renewed annually.', 'wp-invoice-manager' ),
+			__( 'Renewal prices may change based on domain registrar, server costs, and international exchange rates.', 'wp-invoice-manager' ),
+			__( 'Annual support & maintenance includes WordPress updates, plugin updates, security monitoring, backups, and minor bug fixes.', 'wp-invoice-manager' ),
+			__( 'New features, custom development, or major design changes are not included and will be billed separately.', 'wp-invoice-manager' ),
+			__( 'Third-party service fees (domain, SMS gateway, email service, payment gateway, etc.) are not included unless mentioned in this invoice.', 'wp-invoice-manager' ),
+			__( 'The client is responsible for providing all required website content (logo, images, doctor information, chamber schedule, etc.).', 'wp-invoice-manager' ),
+			__( 'Payment made for domain registration and setup is non-refundable once the service has been activated.', 'wp-invoice-manager' ),
+		);
+	}
+
+	/**
+	 * Whether a #rrggbb hex color is light enough that dark text reads
+	 * better on it than white text (YIQ brightness formula).
+	 *
+	 * @param string $hex
+	 * @return bool
+	 */
+	public static function is_light_color( $hex ) {
+		$hex = ltrim( (string) $hex, '#' );
+		if ( 6 !== strlen( $hex ) || ! ctype_xdigit( $hex ) ) {
+			return false;
+		}
+		$r   = hexdec( substr( $hex, 0, 2 ) );
+		$g   = hexdec( substr( $hex, 2, 2 ) );
+		$b   = hexdec( substr( $hex, 4, 2 ) );
+		$yiq = ( ( $r * 299 ) + ( $g * 587 ) + ( $b * 114 ) ) / 1000;
+		return $yiq >= 150;
+	}
+
+	/**
+	 * Convert a #rrggbb hex color to an "rgba(r,g,b,a)" string.
+	 *
+	 * @param string $hex
+	 * @param float  $alpha
+	 * @return string
+	 */
+	public static function hex_to_rgba( $hex, $alpha ) {
+		$hex = ltrim( (string) $hex, '#' );
+		if ( 6 !== strlen( $hex ) || ! ctype_xdigit( $hex ) ) {
+			$hex = 'ffffff';
+		}
+		$r = hexdec( substr( $hex, 0, 2 ) );
+		$g = hexdec( substr( $hex, 2, 2 ) );
+		$b = hexdec( substr( $hex, 4, 2 ) );
+		return sprintf( 'rgba(%d,%d,%d,%s)', $r, $g, $b, $alpha );
+	}
+
+	/**
+	 * Pick a readable text color for content sitting on top of an arbitrary
+	 * background color (e.g. the invoice header / status bar) – used only
+	 * as the initial default; the user can override it explicitly.
+	 *
+	 * @param string $bg_hex
+	 * @return string
+	 */
+	public static function readable_text_color( $bg_hex ) {
+		return self::is_light_color( $bg_hex ) ? '#1e293b' : '#ffffff';
+	}
+
+	/**
+	 * Default printable-invoice footer text. Supports {site_name} and {date} tokens.
+	 *
+	 * @return string
+	 */
+	public static function get_default_footer_text() {
+		return __( 'Generated by WP Invoice Manager • {site_name} • {date}', 'wp-invoice-manager' );
 	}
 
 	/**

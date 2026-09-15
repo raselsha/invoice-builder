@@ -27,6 +27,11 @@ class WP_IM_Admin {
 		// Print / PDF
 		add_action( 'admin_post_wp_im_print_invoice',  array( $this, 'handle_print_invoice' ) );
 
+		// Public share link (no login required)
+		add_action( 'admin_post_wp_im_view_shared_invoice',        array( $this, 'handle_view_shared_invoice' ) );
+		add_action( 'admin_post_nopriv_wp_im_view_shared_invoice', array( $this, 'handle_view_shared_invoice' ) );
+		add_action( 'admin_post_wp_im_regenerate_share_link',      array( $this, 'handle_regenerate_share_link' ) );
+
 		// AJAX status update
 		add_action( 'wp_ajax_wp_im_update_status', array( $this, 'ajax_update_status' ) );
 
@@ -93,18 +98,21 @@ class WP_IM_Admin {
 			return;
 		}
 
+		$css_path = WP_IM_PLUGIN_DIR . 'admin/css/admin.css';
+		$js_path  = WP_IM_PLUGIN_DIR . 'admin/js/admin.js';
+
 		wp_enqueue_style(
 			'wp-im-admin',
 			WP_IM_PLUGIN_URL . 'admin/css/admin.css',
 			array(),
-			WP_IM_VERSION
+			file_exists( $css_path ) ? filemtime( $css_path ) : WP_IM_VERSION
 		);
 
 		wp_enqueue_script(
 			'wp-im-admin',
 			WP_IM_PLUGIN_URL . 'admin/js/admin.js',
-			array( 'jquery' ),
-			WP_IM_VERSION,
+			array( 'jquery', 'jquery-ui-sortable' ),
+			file_exists( $js_path ) ? filemtime( $js_path ) : WP_IM_VERSION,
 			true
 		);
 
@@ -148,15 +156,25 @@ class WP_IM_Admin {
 	}
 
 	public function page_new() {
-		$invoice  = null;
-		$post_id  = absint( $_GET['invoice_id'] ?? 0 );
+		$invoice   = null;
+		$post_id   = absint( $_GET['invoice_id'] ?? 0 );
+		$share_url = '';
 
 		if ( $post_id ) {
 			$invoice = WP_IM_Invoice::get( $post_id );
+			if ( $invoice ) {
+				$token     = WP_IM_Invoice::get_or_create_share_token( $post_id );
+				$share_url = add_query_arg( array(
+					'action'     => 'wp_im_view_shared_invoice',
+					'invoice_id' => $post_id,
+					'token'      => $token,
+				), admin_url( 'admin-post.php' ) );
+			}
 		}
 
 		$statuses   = WP_IM_Invoice::get_statuses();
 		$currencies = WP_IM_Invoice::get_currencies();
+		$all_terms  = get_option( 'wp_im_terms_conditions', WP_IM_Invoice::get_default_terms() );
 		include WP_IM_PLUGIN_DIR . 'admin/views/form.php';
 	}
 
@@ -267,6 +285,43 @@ class WP_IM_Admin {
 		$generator->render_html();
 	}
 
+	/**
+	 * Public, tokenised invoice view — no login required. Used for the
+	 * "Share" link on the invoice edit screen.
+	 */
+	public function handle_view_shared_invoice() {
+		$post_id = absint( $_GET['invoice_id'] ?? 0 );
+		$token   = sanitize_text_field( wp_unslash( $_GET['token'] ?? '' ) );
+
+		$invoice = WP_IM_Invoice::get( $post_id );
+
+		if ( ! $invoice || empty( $invoice['share_token'] ) || ! hash_equals( $invoice['share_token'], $token ) ) {
+			wp_die(
+				esc_html__( 'This invoice link is invalid or no longer active.', 'wp-invoice-manager' ),
+				esc_html__( 'Link not found', 'wp-invoice-manager' ),
+				array( 'response' => 404 )
+			);
+		}
+
+		$generator = new WP_IM_PDF_Generator( $invoice );
+		$generator->render_html();
+	}
+
+	public function handle_regenerate_share_link() {
+		$post_id = absint( $_GET['invoice_id'] ?? 0 );
+		check_admin_referer( 'wp_im_share_' . $post_id, 'wp_im_share_nonce' );
+		$this->check_capability();
+
+		WP_IM_Invoice::regenerate_share_token( $post_id );
+
+		wp_redirect( add_query_arg( array(
+			'page'       => 'wp-im-new-invoice',
+			'invoice_id' => $post_id,
+			'message'    => 'share_regenerated',
+		), admin_url( 'admin.php' ) ) );
+		exit;
+	}
+
 	public function handle_save_settings() {
 		$this->verify_nonce( 'wp_im_settings_nonce', 'wp_im_settings_action' );
 		$this->check_capability();
@@ -277,6 +332,19 @@ class WP_IM_Admin {
 		update_option( 'wp_im_company_address',sanitize_textarea_field( $_POST['company_address'] ?? '' ) );
 		update_option( 'wp_im_default_currency', sanitize_text_field( $_POST['default_currency'] ?? 'USD' ) );
 		update_option( 'wp_im_default_tax',    floatval( $_POST['default_tax'] ?? 0 ) );
+		update_option( 'wp_im_footer_text',    sanitize_text_field( $_POST['footer_text'] ?? WP_IM_Invoice::get_default_footer_text() ) );
+
+		$terms = array_map( 'sanitize_textarea_field', wp_unslash( $_POST['terms'] ?? array() ) );
+		$terms = array_values( array_filter( $terms, function( $term ) {
+			return '' !== trim( $term );
+		} ) );
+		update_option( 'wp_im_terms_conditions', $terms );
+
+		update_option( 'wp_im_primary_color', $this->sanitize_hex_color( $_POST['primary_color'] ?? '', '#e94560' ) );
+		update_option( 'wp_im_header_color',  $this->sanitize_hex_color( $_POST['header_color'] ?? '', '#1a1a2e' ) );
+		update_option( 'wp_im_date_color',    $this->sanitize_hex_color( $_POST['date_color'] ?? '', '#0f3460' ) );
+		update_option( 'wp_im_header_text_color', $this->sanitize_hex_color( $_POST['header_text_color'] ?? '', '#ffffff' ) );
+		update_option( 'wp_im_date_text_color',   $this->sanitize_hex_color( $_POST['date_text_color'] ?? '', '#ffffff' ) );
 
 		wp_redirect( add_query_arg( array(
 			'page'    => 'wp-im-settings',
@@ -315,5 +383,17 @@ class WP_IM_Admin {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_die( esc_html__( 'You do not have permission to perform this action.', 'wp-invoice-manager' ) );
 		}
+	}
+
+	/**
+	 * Sanitize a #rrggbb hex color, falling back to a default on invalid input.
+	 *
+	 * @param string $value
+	 * @param string $default
+	 * @return string
+	 */
+	private function sanitize_hex_color( $value, $default ) {
+		$value = sanitize_text_field( $value );
+		return preg_match( '/^#[0-9a-fA-F]{6}$/', $value ) ? strtolower( $value ) : $default;
 	}
 }
