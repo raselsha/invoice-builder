@@ -425,6 +425,20 @@ class WP_IM_Invoice {
 	}
 
 	/**
+	 * Trim and collapse stray blank lines in a multi-line address so a run
+	 * of empty lines (e.g. left over from copy/paste) doesn't show up as an
+	 * awkward gap on the printed invoice.
+	 *
+	 * @param string $address
+	 * @return string
+	 */
+	public static function clean_address( $address ) {
+		$address = str_replace( "\r\n", "\n", (string) $address );
+		$address = preg_replace( '/\n{2,}/', "\n", $address );
+		return trim( $address );
+	}
+
+	/**
 	 * Default printable-invoice footer text. Supports {site_name} and {date} tokens.
 	 *
 	 * @return string

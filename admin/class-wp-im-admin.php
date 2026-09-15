@@ -35,6 +35,11 @@ class WP_IM_Admin {
 		// AJAX status update
 		add_action( 'wp_ajax_wp_im_update_status', array( $this, 'ajax_update_status' ) );
 
+		// Customers
+		add_action( 'admin_post_wp_im_save_customer',   array( $this, 'handle_save_customer' ) );
+		add_action( 'admin_post_wp_im_delete_customer', array( $this, 'handle_delete_customer' ) );
+		add_action( 'wp_ajax_wp_im_search_customers',   array( $this, 'ajax_search_customers' ) );
+
 		// Settings
 		add_action( 'admin_post_wp_im_save_settings', array( $this, 'handle_save_settings' ) );
 	}
@@ -72,6 +77,15 @@ class WP_IM_Admin {
 
 		add_submenu_page(
 			'wp-invoice-manager',
+			__( 'Customers', 'wp-invoice-manager' ),
+			__( 'Customers', 'wp-invoice-manager' ),
+			'manage_options',
+			'wp-im-customers',
+			array( $this, 'page_customers' )
+		);
+
+		add_submenu_page(
+			'wp-invoice-manager',
 			__( 'Settings', 'wp-invoice-manager' ),
 			__( 'Settings', 'wp-invoice-manager' ),
 			'manage_options',
@@ -87,13 +101,14 @@ class WP_IM_Admin {
 			'toplevel_page_wp-invoice-manager',
 			'invoices_page_wp-im-new-invoice',
 			'invoices_page_wp-im-settings',
+			'invoices_page_wp-im-customers',
 		);
 
 		if ( ! in_array( $hook, $our_pages, true ) && ! isset( $_GET['page'] ) ) {
 			return;
 		}
 
-		$allowed_get_pages = array( 'wp-invoice-manager', 'wp-im-new-invoice', 'wp-im-settings' );
+		$allowed_get_pages = array( 'wp-invoice-manager', 'wp-im-new-invoice', 'wp-im-settings', 'wp-im-customers' );
 		if ( ! in_array( $_GET['page'] ?? '', $allowed_get_pages, true ) && ! in_array( $hook, $our_pages, true ) ) {
 			return;
 		}
@@ -156,9 +171,10 @@ class WP_IM_Admin {
 	}
 
 	public function page_new() {
-		$invoice   = null;
-		$post_id   = absint( $_GET['invoice_id'] ?? 0 );
-		$share_url = '';
+		$invoice          = null;
+		$post_id          = absint( $_GET['invoice_id'] ?? 0 );
+		$share_url        = '';
+		$prefill_customer = null;
 
 		if ( $post_id ) {
 			$invoice = WP_IM_Invoice::get( $post_id );
@@ -170,6 +186,9 @@ class WP_IM_Admin {
 					'token'      => $token,
 				), admin_url( 'admin-post.php' ) );
 			}
+		} elseif ( ! empty( $_GET['customer_id'] ) ) {
+			// Arrived via a customer's "New Invoice" quick-link — prefill client details.
+			$prefill_customer = WP_IM_Customer::get( absint( $_GET['customer_id'] ) );
 		}
 
 		$statuses   = WP_IM_Invoice::get_statuses();
@@ -180,6 +199,11 @@ class WP_IM_Admin {
 
 	public function page_settings() {
 		include WP_IM_PLUGIN_DIR . 'admin/views/settings.php';
+	}
+
+	public function page_customers() {
+		$customers = WP_IM_Customer::get_all();
+		include WP_IM_PLUGIN_DIR . 'admin/views/customers-list.php';
 	}
 
 	// ── Form handlers ─────────────────────────────────────────────────────────
@@ -194,6 +218,8 @@ class WP_IM_Admin {
 			wp_die( esc_html( $post_id->get_error_message() ) );
 		}
 
+		WP_IM_Customer::upsert_from_invoice_data( $_POST );
+
 		wp_redirect( add_query_arg( array(
 			'page'    => 'wp-invoice-manager',
 			'message' => 'created',
@@ -207,6 +233,8 @@ class WP_IM_Admin {
 
 		$post_id = absint( $_POST['post_id'] ?? 0 );
 		WP_IM_Invoice::update( $post_id, $_POST );
+
+		WP_IM_Customer::upsert_from_invoice_data( $_POST );
 
 		wp_redirect( add_query_arg( array(
 			'page'       => 'wp-im-new-invoice',
@@ -353,7 +381,61 @@ class WP_IM_Admin {
 		exit;
 	}
 
+	// ── Customers ────────────────────────────────────────────────────────────
+
+	public function handle_save_customer() {
+		$this->verify_nonce( 'wp_im_customer_action', 'wp_im_customer_nonce' );
+		$this->check_capability();
+
+		$data = array(
+			'name'    => $_POST['name'] ?? '',
+			'email'   => $_POST['email'] ?? '',
+			'phone'   => $_POST['phone'] ?? '',
+			'address' => $_POST['address'] ?? '',
+		);
+
+		$post_id = absint( $_POST['post_id'] ?? 0 );
+
+		if ( $post_id ) {
+			WP_IM_Customer::update( $post_id, $data );
+		} else {
+			$post_id = WP_IM_Customer::create( $data );
+			if ( is_wp_error( $post_id ) ) {
+				wp_die( esc_html( $post_id->get_error_message() ) );
+			}
+		}
+
+		wp_redirect( add_query_arg( array(
+			'page'    => 'wp-im-customers',
+			'message' => 'saved',
+		), admin_url( 'admin.php' ) ) );
+		exit;
+	}
+
+	public function handle_delete_customer() {
+		$this->verify_nonce( 'wp_im_delete_customer_' . absint( $_GET['customer_id'] ?? 0 ), 'wp_im_delete_customer_nonce' );
+		$this->check_capability();
+
+		WP_IM_Customer::delete( absint( $_GET['customer_id'] ?? 0 ) );
+
+		wp_redirect( add_query_arg( array(
+			'page'    => 'wp-im-customers',
+			'message' => 'deleted',
+		), admin_url( 'admin.php' ) ) );
+		exit;
+	}
+
 	// ── AJAX ─────────────────────────────────────────────────────────────────
+
+	public function ajax_search_customers() {
+		check_ajax_referer( 'wp_im_nonce', 'nonce' );
+		$this->check_capability();
+
+		$term    = sanitize_text_field( wp_unslash( $_GET['term'] ?? $_POST['term'] ?? '' ) );
+		$results = WP_IM_Customer::search( $term );
+
+		wp_send_json_success( array( 'customers' => $results ) );
+	}
 
 	public function ajax_update_status() {
 		check_ajax_referer( 'wp_im_nonce', 'nonce' );

@@ -217,15 +217,15 @@
 			<div class="party">
 				<div class="party-label">From</div>
 				<div class="party-name"><?php echo esc_html( $invoice['biller_name'] ); ?></div>
-				<div class="party-detail"><?php echo esc_html( $invoice['biller_address'] ); ?></div>
+				<div class="party-detail"><?php echo esc_html( WP_IM_Invoice::clean_address( $invoice['biller_address'] ) ); ?></div>
 			</div>
 			<div class="party" style="text-align:right">
 				<div class="party-label">Bill To</div>
 				<div class="party-name"><?php echo esc_html( $invoice['client_name'] ); ?></div>
 				<div class="party-detail">
-					<?php echo esc_html( $invoice['client_email'] ); ?><br>
+					<?php if ( $invoice['client_email'] ) echo esc_html( $invoice['client_email'] ) . '<br>'; ?>
 					<?php if ( $invoice['client_phone'] ) echo esc_html( $invoice['client_phone'] ) . '<br>'; ?>
-					<?php echo esc_html( $invoice['client_address'] ); ?>
+					<?php echo esc_html( WP_IM_Invoice::clean_address( $invoice['client_address'] ) ); ?>
 				</div>
 			</div>
 		</div>

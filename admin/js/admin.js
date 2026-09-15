@@ -532,6 +532,132 @@
 		}
 	});
 
+	// ── Add / Edit Customer modal (Customers list page) ──────────────────
+	function openCustomerModal(customer) {
+		var $overlay = $('#wim-customer-modal-overlay');
+		if (!$overlay.length) {
+			return;
+		}
+		customer = customer || {};
+
+		$('#wim-customer-modal-title').text(customer.id ? 'Edit Customer: ' + customer.name : 'Add New Customer');
+		$('#wim-customer-post-id').val(customer.id || '');
+		$('#wim-customer-name').val(customer.name || '');
+		$('#wim-customer-email').val(customer.email || '');
+		$('#wim-customer-phone').val(customer.phone || '');
+		$('#wim-customer-address').val(customer.address || '');
+
+		$overlay.addClass('is-open');
+		$('#wim-customer-name').trigger('focus');
+	}
+
+	function closeCustomerModal() {
+		$('#wim-customer-modal-overlay').removeClass('is-open');
+	}
+
+	$(document).on('click', '#wim-add-customer-btn, #wim-add-customer-btn-empty', function () {
+		openCustomerModal(null);
+	});
+
+	$(document).on('click', '.wim-edit-customer-btn', function () {
+		var $btn = $(this);
+		openCustomerModal({
+			id: $btn.data('id'),
+			name: $btn.data('name'),
+			email: $btn.data('email'),
+			phone: $btn.data('phone'),
+			address: $btn.data('address')
+		});
+	});
+
+	$(document).on('click', '#wim-customer-modal-close, .wim-modal-cancel', function () {
+		closeCustomerModal();
+	});
+
+	$(document).on('click', '#wim-customer-modal-overlay', function (e) {
+		if (e.target === this) {
+			closeCustomerModal();
+		}
+	});
+
+	$(document).on('click', '.wim-modal', function (e) {
+		e.stopPropagation();
+	});
+
+	$(document).on('keydown', function (e) {
+		if (27 === e.keyCode) { // Escape
+			closeCustomerModal();
+		}
+	});
+
+	// ── Customer search (New Invoice → Client Details) ───────────────────
+	var wimCustomerSearchTimer = null;
+
+	function escText(s) {
+		return $('<div>').text(s || '').html();
+	}
+
+	function renderCustomerResults(customers) {
+		var $results = $('.wim-customer-search-results');
+
+		if (!customers.length) {
+			$results.html('<div class="wim-customer-search-empty">No matching customers.</div>').addClass('is-open');
+			return;
+		}
+
+		var html = '';
+		customers.forEach(function (c) {
+			var sub = [c.email, c.phone].filter(Boolean).join(' · ');
+			html += '<button type="button" class="wim-customer-result"' +
+				' data-name="' + escText(c.name) + '"' +
+				' data-email="' + escText(c.email) + '"' +
+				' data-phone="' + escText(c.phone) + '"' +
+				' data-address="' + escText(c.address) + '">' +
+				'<span class="wim-customer-result-name">' + escText(c.name) + '</span>' +
+				(sub ? '<span class="wim-customer-result-sub">' + escText(sub) + '</span>' : '') +
+				'</button>';
+		});
+		$results.html(html).addClass('is-open');
+	}
+
+	$(document).on('input', '#wim-customer-search-input', function () {
+		var term = $(this).val().trim();
+		clearTimeout(wimCustomerSearchTimer);
+
+		if (term.length < 2) {
+			$('.wim-customer-search-results').removeClass('is-open').empty();
+			return;
+		}
+
+		wimCustomerSearchTimer = setTimeout(function () {
+			$.get(WP_IM.ajax_url, {
+				action: 'wp_im_search_customers',
+				nonce: WP_IM.nonce,
+				term: term
+			}, function (response) {
+				if (response && response.success) {
+					renderCustomerResults(response.data.customers);
+				}
+			});
+		}, 300);
+	});
+
+	$(document).on('click', '.wim-customer-result', function () {
+		var $r = $(this);
+		$('#wim-client-name').val($r.data('name'));
+		$('#wim-client-email').val($r.data('email'));
+		$('#wim-client-phone').val($r.data('phone'));
+		$('#wim-client-address').val($r.data('address'));
+		$('#wim-customer-search-input').val($r.data('name'));
+		$('.wim-customer-search-results').removeClass('is-open').empty();
+	});
+
+	$(document).on('click', function (e) {
+		if (!$(e.target).closest('.wim-customer-search-wrap').length) {
+			$('.wim-customer-search-results').removeClass('is-open');
+		}
+	});
+
 	// ── AJAX status update (inline quick-edit) ───────────────────────────
 	$(document).on('change', '.wim-status-select', function () {
 		var $select  = $(this);

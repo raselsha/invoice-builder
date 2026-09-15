@@ -896,3 +896,111 @@
 .wim-stat-card.all      { border-left-color: var(--wim-accent); }
 .wim-stat-value { font-size: 26px; font-weight: 800; color: var(--wim-primary); }
 .wim-stat-label { font-size: 12px; color: var(--wim-muted); font-weight: 600; text-transform: uppercase; letter-spacing: .05em; margin-top: 4px; }
+
+/* ── Add / Edit Customer modal ────────────────────────────── */
+.wim-modal-overlay {
+	display: none;
+	position: fixed;
+	top: 0; left: 0; right: 0; bottom: 0;
+	background: rgba(15,23,42,.55);
+	z-index: 200000;
+	align-items: center;
+	justify-content: center;
+	padding: 20px;
+	box-sizing: border-box;
+}
+.wim-modal-overlay.is-open { display: flex; }
+.wim-modal {
+	width: 100%;
+	max-width: 520px;
+	max-height: 90vh;
+	overflow-y: auto;
+	background: var(--wim-surface);
+	border-radius: var(--wim-radius);
+	box-shadow: 0 24px 64px rgba(0,0,0,.3);
+}
+.wim-modal-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 20px 24px;
+	border-bottom: 1.5px solid var(--wim-border);
+}
+.wim-modal-header h2 {
+	margin: 0;
+	font-size: 17px;
+	font-weight: 700;
+	color: var(--wim-primary);
+}
+.wim-modal-close {
+	background: none;
+	border: none;
+	cursor: pointer;
+	color: var(--wim-muted);
+	padding: 4px;
+	border-radius: 4px;
+	display: flex;
+}
+.wim-modal-close:hover { background: var(--wim-surface2); color: var(--wim-text); }
+.wim-modal-body { padding: 24px; }
+.wim-modal-footer {
+	display: flex;
+	justify-content: flex-end;
+	gap: 10px;
+	margin-top: 8px;
+	padding-top: 16px;
+	border-top: 1px solid var(--wim-border);
+}
+@media (max-width: 480px) {
+	.wim-modal-footer { flex-direction: column-reverse; }
+	.wim-modal-footer .wim-btn { width: 100%; justify-content: center; }
+}
+
+/* ── Customer search (invoice form) ──────────────────────── */
+.wim-customer-search-wrap { position: relative; }
+.wim-customer-search { position: relative; }
+.wim-customer-search-icon {
+	position: absolute;
+	left: 10px;
+	top: 50%;
+	transform: translateY(-50%);
+	color: var(--wim-muted);
+	font-size: 16px;
+	width: 16px;
+	height: 16px;
+	pointer-events: none;
+}
+.wim-customer-search input[type="text"] { padding-left: 34px; }
+.wim-customer-search-results {
+	display: none;
+	position: absolute;
+	top: calc(100% + 6px);
+	left: 0;
+	right: 0;
+	z-index: 40;
+	background: #fff;
+	border: 1.5px solid var(--wim-border);
+	border-radius: var(--wim-radius);
+	box-shadow: 0 12px 32px rgba(0,0,0,.14);
+	max-height: 260px;
+	overflow-y: auto;
+	padding: 6px;
+	box-sizing: border-box;
+}
+.wim-customer-search-results.is-open { display: block; }
+.wim-customer-result {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	width: 100%;
+	text-align: left;
+	padding: 8px 10px;
+	border: none;
+	background: none;
+	border-radius: 6px;
+	cursor: pointer;
+}
+.wim-customer-result:hover { background: var(--wim-surface2); }
+.wim-customer-result-name { font-size: 13px; font-weight: 600; color: var(--wim-text); }
+.wim-customer-result-sub { font-size: 11.5px; color: var(--wim-muted); margin-top: 2px; }
+.wim-customer-search-empty { padding: 10px; font-size: 12px; color: var(--wim-muted); text-align: center; }

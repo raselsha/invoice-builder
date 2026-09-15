@@ -27,6 +27,15 @@ if ( empty( $items ) ) {
 	$items = array( array( 'description' => '', 'quantity' => 1, 'unit_price' => 0, 'tax_rate' => $def_tax ) );
 }
 
+// Client field defaults: an existing invoice keeps its own values; a brand-new
+// invoice can be prefilled from a customer (search-select, or a "New Invoice"
+// quick-link from the Customers list).
+$prefill_customer  = $prefill_customer ?? null;
+$client_name_val   = $is_edit ? $invoice['client_name']    : ( $prefill_customer['name']    ?? '' );
+$client_email_val  = $is_edit ? $invoice['client_email']   : ( $prefill_customer['email']   ?? '' );
+$client_phone_val  = $is_edit ? $invoice['client_phone']   : ( $prefill_customer['phone']   ?? '' );
+$client_address_val= $is_edit ? $invoice['client_address'] : ( $prefill_customer['address'] ?? '' );
+
 // Terms & Conditions checklist – a brand-new invoice starts with everything checked;
 // an existing invoice keeps exactly what was saved for it (even if that's none).
 $all_terms      = $all_terms ?? array();
@@ -154,25 +163,38 @@ function wim_val( $invoice, $key, $default = '' ) {
 						<span class="dashicons dashicons-businessman"></span>
 						<?php esc_html_e( 'Client Details', 'wp-invoice-manager' ); ?>
 					</h3>
+
+					<?php if ( ! $is_edit ) : ?>
+					<div class="wim-field wim-customer-search-wrap">
+						<label><?php esc_html_e( 'Search Customer', 'wp-invoice-manager' ); ?></label>
+						<div class="wim-customer-search">
+							<span class="dashicons dashicons-search wim-customer-search-icon"></span>
+							<input type="text" id="wim-customer-search-input" autocomplete="off"
+								placeholder="<?php esc_attr_e( 'Type a name, email, or phone…', 'wp-invoice-manager' ); ?>">
+							<div class="wim-customer-search-results"></div>
+						</div>
+					</div>
+					<?php endif; ?>
+
 					<div class="wim-field">
 						<label><?php esc_html_e( 'Client Name', 'wp-invoice-manager' ); ?></label>
-						<input type="text" name="client_name"
-							value="<?php echo wim_val( $invoice, 'client_name' ); ?>"
+						<input type="text" name="client_name" id="wim-client-name"
+							value="<?php echo esc_attr( $client_name_val ); ?>"
 							required>
 					</div>
 					<div class="wim-field">
 						<label><?php esc_html_e( 'Email', 'wp-invoice-manager' ); ?></label>
-						<input type="email" name="client_email"
-							value="<?php echo wim_val( $invoice, 'client_email' ); ?>">
+						<input type="email" name="client_email" id="wim-client-email"
+							value="<?php echo esc_attr( $client_email_val ); ?>">
 					</div>
 					<div class="wim-field">
 						<label><?php esc_html_e( 'Phone', 'wp-invoice-manager' ); ?></label>
-						<input type="tel" name="client_phone"
-							value="<?php echo wim_val( $invoice, 'client_phone' ); ?>">
+						<input type="tel" name="client_phone" id="wim-client-phone"
+							value="<?php echo esc_attr( $client_phone_val ); ?>">
 					</div>
 					<div class="wim-field">
 						<label><?php esc_html_e( 'Address', 'wp-invoice-manager' ); ?></label>
-						<textarea name="client_address"><?php echo $invoice ? esc_textarea( $invoice['client_address'] ) : ''; ?></textarea>
+						<textarea name="client_address" id="wim-client-address"><?php echo esc_textarea( $client_address_val ); ?></textarea>
 					</div>
 				</div>
 			</div>

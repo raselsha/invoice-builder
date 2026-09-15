@@ -4,7 +4,7 @@ Tags:              invoice, billing, payment, PDF, client management
 Requires at least: 5.8
 Tested up to:      6.5
 Requires PHP:      7.4
-Stable tag:        1.1.0
+Stable tag:        1.2.0
 License:           GPLv2 or later
 License URI:       https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -75,6 +75,16 @@ Invoice meta is stored as WordPress post meta on the `wp_invoice` custom post ty
 Yes – all strings use `__()` / `_e()` with the `wp-invoice-manager` text domain.
 
 == Changelog ==
+
+= 1.2.0 =
+* New: Customers — a reusable client list (new `wim_customer` post type, no extra DB tables).
+* Invoice form: search customers by name/email/phone and auto-fill client details, or arrive
+  prefilled via a customer's "New Invoice" quick-link.
+* Invoices are "auto-filed": creating/updating an invoice automatically creates or updates a
+  matching customer record (matched by email, falling back to name).
+* Customers page: Add/Edit happens in a modal, no separate page navigation.
+* Fix: printed invoices no longer show a stray blank line when the client email is empty, and
+  addresses with stray blank lines are trimmed/collapsed on the printed invoice.
 
 = 1.1.0 =
 * Settings: custom Terms & Conditions repeater (card style, view/edit toggle, drag-to-reorder).
