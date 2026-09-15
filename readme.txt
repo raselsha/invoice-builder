@@ -4,7 +4,7 @@ Tags:              invoice, billing, payment, PDF, client management
 Requires at least: 5.8
 Tested up to:      6.5
 Requires PHP:      7.4
-Stable tag:        1.2.1
+Stable tag:        1.2.2
 License:           GPLv2 or later
 License URI:       https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -75,6 +75,12 @@ Invoice meta is stored as WordPress post meta on the `wp_invoice` custom post ty
 Yes – all strings use `__()` / `_e()` with the `wp-invoice-manager` text domain.
 
 == Changelog ==
+
+= 1.2.2 =
+* Fix: on the printed invoice, the "Bill To" block showed a stray gap between the client name
+  and the phone/address lines — caused by the template's own indentation whitespace being
+  rendered as a blank line (`.party-detail` uses `white-space: pre-line`). The client's contact
+  lines are now built and printed in a single pass so no incidental whitespace leaks in.
 
 = 1.2.1 =
 * Invoice form: Status and Currency are now the same custom dropdown used in Settings

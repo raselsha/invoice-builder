@@ -222,11 +222,24 @@
 			<div class="party" style="text-align:right">
 				<div class="party-label">Bill To</div>
 				<div class="party-name"><?php echo esc_html( $invoice['client_name'] ); ?></div>
-				<div class="party-detail">
-					<?php if ( $invoice['client_email'] ) echo esc_html( $invoice['client_email'] ) . '<br>'; ?>
-					<?php if ( $invoice['client_phone'] ) echo esc_html( $invoice['client_phone'] ) . '<br>'; ?>
-					<?php echo esc_html( WP_IM_Invoice::clean_address( $invoice['client_address'] ) ); ?>
-				</div>
+				<div class="party-detail"><?php
+					// Build the list first and output it in a single echo. Any
+					// whitespace left between separate PHP-tag blocks here would
+					// itself render as a blank line, since .party-detail uses
+					// white-space:pre-line.
+					$client_lines = array();
+					if ( $invoice['client_email'] ) {
+						$client_lines[] = esc_html( $invoice['client_email'] );
+					}
+					if ( $invoice['client_phone'] ) {
+						$client_lines[] = esc_html( $invoice['client_phone'] );
+					}
+					$client_address = WP_IM_Invoice::clean_address( $invoice['client_address'] );
+					if ( '' !== $client_address ) {
+						$client_lines[] = esc_html( $client_address );
+					}
+					echo implode( '<br>', $client_lines ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+				?></div>
 			</div>
 		</div>
 
