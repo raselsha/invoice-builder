@@ -4,7 +4,7 @@ Tags:              invoice, billing, payment, PDF, client management
 Requires at least: 5.8
 Tested up to:      6.5
 Requires PHP:      7.4
-Stable tag:        1.2.0
+Stable tag:        1.2.1
 License:           GPLv2 or later
 License URI:       https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -75,6 +75,13 @@ Invoice meta is stored as WordPress post meta on the `wp_invoice` custom post ty
 Yes – all strings use `__()` / `_e()` with the `wp-invoice-manager` text domain.
 
 == Changelog ==
+
+= 1.2.1 =
+* Invoice form: Status and Currency are now the same custom dropdown used in Settings
+  (fixes the native `<select>`'s text not sitting vertically centered).
+* Refactor: shared view helpers (`wim_val()`, `wim_render_select()`) moved into
+  `admin/view-helpers.php` so both the Settings and Invoice form templates use one
+  implementation instead of duplicating it.
 
 = 1.2.0 =
 * New: Customers — a reusable client list (new `wim_customer` post type, no extra DB tables).

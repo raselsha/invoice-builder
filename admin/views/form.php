@@ -42,10 +42,6 @@ $all_terms      = $all_terms ?? array();
 $selected_terms = $is_edit
 	? array_map( 'absint', (array) $invoice['terms_selected'] )
 	: array_keys( $all_terms );
-
-function wim_val( $invoice, $key, $default = '' ) {
-	return $invoice ? esc_attr( $invoice[ $key ] ?? $default ) : esc_attr( $default );
-}
 ?>
 <div class="wim-wrap">
 
@@ -101,27 +97,13 @@ function wim_val( $invoice, $key, $default = '' ) {
 					</div>
 					<div class="wim-field">
 						<label><?php esc_html_e( 'Status', 'wp-invoice-manager' ); ?></label>
-						<select name="status">
-							<?php foreach ( $statuses as $key => $label ) : ?>
-								<option value="<?php echo esc_attr( $key ); ?>"
-									<?php selected( wim_val( $invoice, 'status', 'draft' ), $key ); ?>>
-									<?php echo esc_html( $label ); ?>
-								</option>
-							<?php endforeach; ?>
-						</select>
+						<?php wim_render_select( 'status', $statuses, $invoice ? ( $invoice['status'] ?? 'draft' ) : 'draft' ); ?>
 					</div>
 				</div>
 				<div class="wim-form-grid-3">
 					<div class="wim-field">
 						<label><?php esc_html_e( 'Currency', 'wp-invoice-manager' ); ?></label>
-						<select name="currency">
-							<?php foreach ( $currencies as $code => $label ) : ?>
-								<option value="<?php echo esc_attr( $code ); ?>"
-									<?php selected( wim_val( $invoice, 'currency', $def_currency ), $code ); ?>>
-									<?php echo esc_html( $label ); ?>
-								</option>
-							<?php endforeach; ?>
-						</select>
+						<?php wim_render_select( 'currency', $currencies, $invoice ? ( $invoice['currency'] ?? $def_currency ) : $def_currency ); ?>
 					</div>
 					<div class="wim-field">
 						<label><?php esc_html_e( 'Discount (flat)', 'wp-invoice-manager' ); ?></label>

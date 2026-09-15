@@ -54,36 +54,6 @@ function wim_render_color_picker( $name, $role, $value, array $presets ) {
 	<?php
 }
 
-/**
- * Render a custom-styled dropdown that replaces a native <select> visually.
- * The real <select> stays in the markup (hidden) and is what submits with
- * the form; admin.js keeps a styled trigger + option panel in sync with it.
- *
- * @param string $name    Form field name.
- * @param array  $options value => label pairs.
- * @param string $current Currently selected value.
- */
-function wim_render_select( $name, array $options, $current ) {
-	?>
-	<div class="wim-select">
-		<select name="<?php echo esc_attr( $name ); ?>" class="wim-select-native">
-			<?php foreach ( $options as $value => $label ) : ?>
-			<option value="<?php echo esc_attr( $value ); ?>" <?php selected( $current, $value ); ?>><?php echo esc_html( $label ); ?></option>
-			<?php endforeach; ?>
-		</select>
-		<button type="button" class="wim-select-trigger">
-			<span class="wim-select-value"><?php echo esc_html( $options[ $current ] ?? reset( $options ) ); ?></span>
-			<span class="dashicons dashicons-arrow-down-alt2"></span>
-		</button>
-		<div class="wim-select-panel">
-			<?php foreach ( $options as $value => $label ) : ?>
-			<button type="button" class="wim-select-option <?php echo ( (string) $current === (string) $value ) ? 'is-selected' : ''; ?>" data-value="<?php echo esc_attr( $value ); ?>"><?php echo esc_html( $label ); ?></button>
-			<?php endforeach; ?>
-		</div>
-	</div>
-	<?php
-}
-
 // Curated, coordinated palettes – "modern color system" quick picks.
 $color_themes = array(
 	'crimson' => array( 'label' => __( 'Crimson', 'wp-invoice-manager' ),  'primary' => '#e94560', 'header' => '#1a1a2e', 'date' => '#0f3460' ),
