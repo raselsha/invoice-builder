@@ -22,6 +22,7 @@ class WP_IM_Invoice {
 	const META_CLIENT_ADDRESS= '_invoice_client_address';
 	const META_BILLER_NAME   = '_invoice_biller_name';
 	const META_BILLER_EMAIL  = '_invoice_biller_email';
+	const META_BILLER_PHONE  = '_invoice_biller_phone';
 	const META_BILLER_ADDRESS= '_invoice_biller_address';
 	const META_CURRENCY      = '_invoice_currency';
 	const META_NOTES         = '_invoice_notes';
@@ -174,6 +175,7 @@ class WP_IM_Invoice {
 			self::META_CLIENT_ADDRESS => sanitize_textarea_field( $data['client_address'] ?? '' ),
 			self::META_BILLER_NAME    => sanitize_text_field( $data['biller_name'] ?? '' ),
 			self::META_BILLER_EMAIL   => sanitize_email( $data['biller_email'] ?? '' ),
+			self::META_BILLER_PHONE   => sanitize_text_field( $data['biller_phone'] ?? '' ),
 			self::META_BILLER_ADDRESS => sanitize_textarea_field( $data['biller_address'] ?? '' ),
 			self::META_CURRENCY       => sanitize_text_field( $data['currency'] ?? 'USD' ),
 			self::META_NOTES          => sanitize_textarea_field( $data['notes'] ?? '' ),
@@ -199,7 +201,8 @@ class WP_IM_Invoice {
 		$wpdb->delete( $table, array( 'invoice_id' => $this->post_id ), array( '%d' ) );
 
 		foreach ( $items as $item ) {
-			$description = sanitize_text_field( $item['description'] ?? '' );
+			$description = wp_kses( (string) ( $item['description'] ?? '' ), self::description_allowed_html() );
+			$description = trim( $description );
 			$quantity    = floatval( $item['quantity'] ?? 0 );
 			$unit_price  = floatval( $item['unit_price'] ?? 0 );
 
@@ -286,6 +289,7 @@ class WP_IM_Invoice {
 			'client_address' => get_post_meta( $this->post_id, self::META_CLIENT_ADDRESS, true ),
 			'biller_name'    => get_post_meta( $this->post_id, self::META_BILLER_NAME, true ),
 			'biller_email'   => get_post_meta( $this->post_id, self::META_BILLER_EMAIL, true ),
+			'biller_phone'   => get_post_meta( $this->post_id, self::META_BILLER_PHONE, true ),
 			'biller_address' => get_post_meta( $this->post_id, self::META_BILLER_ADDRESS, true ),
 			'currency'       => get_post_meta( $this->post_id, self::META_CURRENCY, true ),
 			'notes'          => get_post_meta( $this->post_id, self::META_NOTES, true ),
@@ -422,6 +426,25 @@ class WP_IM_Invoice {
 	 */
 	public static function readable_text_color( $bg_hex ) {
 		return self::is_light_color( $bg_hex ) ? '#1e293b' : '#ffffff';
+	}
+
+	/**
+	 * Allowed HTML for a line-item description — enough for the small
+	 * bold/link/line-break rich-text field on the invoice form, nothing more.
+	 *
+	 * @return array
+	 */
+	public static function description_allowed_html() {
+		return array(
+			'b'      => array(),
+			'strong' => array(),
+			'a'      => array(
+				'href'   => array(),
+				'target' => array(),
+				'rel'    => array(),
+			),
+			'br'     => array(),
+		);
 	}
 
 	/**

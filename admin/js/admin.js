@@ -12,7 +12,16 @@
 				</span>
 			</td>
 			<td class="col-desc">
-				<input type="text" name="items[${idx}][description]" placeholder="Item description" />
+				<div class="wim-rte">
+					<div class="wim-rte-toolbar">
+						<button type="button" class="wim-rte-btn" data-cmd="bold" title="Bold"><b>B</b></button>
+						<button type="button" class="wim-rte-btn wim-rte-link-btn" title="Add link">
+							<span class="dashicons dashicons-admin-links"></span>
+						</button>
+					</div>
+					<div class="wim-rte-editable" contenteditable="true" data-placeholder="Item description"></div>
+					<input type="hidden" class="wim-rte-input" name="items[${idx}][description]" value="" />
+				</div>
 			</td>
 			<td class="col-qty">
 				<input type="number" name="items[${idx}][quantity]" value="1" min="0" step="0.01" class="wim-qty" />
@@ -33,6 +42,49 @@
 			</td>
 		</tr>`;
 	}
+
+	// ── Line item description rich-text field (bold / link / 2nd line) ───
+	// Enter creates a <br> instead of a nested <div>/<p>, keeping the saved
+	// HTML flat and simple to sanitize (see WP_IM_Invoice::description_allowed_html()).
+	try {
+		document.execCommand('defaultParagraphSeparator', false, 'br');
+	} catch (err) { /* unsupported in this browser; Enter still works, just less tidy HTML */ }
+
+	function syncRte($rte) {
+		$rte.find('.wim-rte-input').val($rte.find('.wim-rte-editable').html());
+	}
+
+	// Keep the editable's selection/focus intact when a toolbar button is
+	// pressed — without this, clicking the button blurs the field first and
+	// execCommand has nothing selected to act on.
+	$(document).on('mousedown', '.wim-rte-btn', function (e) {
+		e.preventDefault();
+	});
+
+	$(document).on('click', '.wim-rte-btn[data-cmd]', function () {
+		var $rte = $(this).closest('.wim-rte');
+		$rte.find('.wim-rte-editable').trigger('focus');
+		document.execCommand($(this).data('cmd'), false, null);
+		syncRte($rte);
+	});
+
+	$(document).on('click', '.wim-rte-link-btn', function () {
+		var $rte = $(this).closest('.wim-rte');
+		$rte.find('.wim-rte-editable').trigger('focus');
+		var url = window.prompt('Link URL:', 'https://');
+		if (url) {
+			document.execCommand('createLink', false, url);
+		}
+		syncRte($rte);
+	});
+
+	$(document).on('input', '.wim-rte-editable', function () {
+		syncRte($(this).closest('.wim-rte'));
+	});
+
+	$(document).on('blur', '.wim-rte-editable', function () {
+		syncRte($(this).closest('.wim-rte'));
+	});
 
 	// ── Recalculate a single row ─────────────────────────────────────────
 	function calcRow($row) {

@@ -217,7 +217,20 @@
 			<div class="party">
 				<div class="party-label">From</div>
 				<div class="party-name"><?php echo esc_html( $invoice['biller_name'] ); ?></div>
-				<div class="party-detail"><?php echo esc_html( WP_IM_Invoice::clean_address( $invoice['biller_address'] ) ); ?></div>
+				<div class="party-detail"><?php
+					// See the "Bill To" block below for why this is built as one
+					// array and echoed in a single pass (white-space:pre-line
+					// would otherwise turn template whitespace into blank lines).
+					$biller_lines = array();
+					if ( ! empty( $invoice['biller_phone'] ) ) {
+						$biller_lines[] = esc_html( $invoice['biller_phone'] );
+					}
+					$biller_address = WP_IM_Invoice::clean_address( $invoice['biller_address'] );
+					if ( '' !== $biller_address ) {
+						$biller_lines[] = esc_html( $biller_address );
+					}
+					echo implode( '<br>', $biller_lines ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+				?></div>
 			</div>
 			<div class="party" style="text-align:right">
 				<div class="party-label">Bill To</div>
@@ -260,7 +273,7 @@
 					$row_total = $line + $tax_amt;
 				?>
 				<tr>
-					<td><?php echo esc_html( $item['description'] ); ?></td>
+					<td><?php echo wp_kses( $item['description'], WP_IM_Invoice::description_allowed_html() ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></td>
 					<td><?php echo esc_html( floatval( $item['quantity'] ) ); ?></td>
 					<td><?php echo esc_html( $symbol . number_format( floatval( $item['unit_price'] ), 2 ) ); ?></td>
 					<td><?php echo esc_html( floatval( $item['tax_rate'] ) . '%' ); ?></td>

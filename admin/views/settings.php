@@ -105,6 +105,11 @@ $color_themes = array(
 						value="<?php echo esc_attr( get_option( 'wp_im_company_email', get_option( 'admin_email' ) ) ); ?>">
 				</div>
 				<div class="wim-field">
+					<label><?php esc_html_e( 'Company Phone', 'wp-invoice-manager' ); ?></label>
+					<input type="tel" name="company_phone"
+						value="<?php echo esc_attr( get_option( 'wp_im_company_phone', '' ) ); ?>">
+				</div>
+				<div class="wim-field">
 					<label><?php esc_html_e( 'Company Address', 'wp-invoice-manager' ); ?></label>
 					<textarea name="company_address"><?php echo esc_textarea( get_option( 'wp_im_company_address', '' ) ); ?></textarea>
 				</div>

@@ -20,6 +20,7 @@ $def_currency = get_option( 'wp_im_default_currency', 'USD' );
 $def_tax      = get_option( 'wp_im_default_tax', 0 );
 $company_name = get_option( 'wp_im_company_name', get_bloginfo( 'name' ) );
 $company_email= get_option( 'wp_im_company_email', get_option('admin_email') );
+$company_phone= get_option( 'wp_im_company_phone', '' );
 $company_addr = get_option( 'wp_im_company_address', '' );
 
 $items = $is_edit ? $invoice['items'] : array();
@@ -134,6 +135,11 @@ $selected_terms = $is_edit
 							value="<?php echo wim_val( $invoice, 'biller_email', $company_email ); ?>">
 					</div>
 					<div class="wim-field">
+						<label><?php esc_html_e( 'Phone', 'wp-invoice-manager' ); ?></label>
+						<input type="tel" name="biller_phone"
+							value="<?php echo wim_val( $invoice, 'biller_phone', $company_phone ); ?>">
+					</div>
+					<div class="wim-field">
 						<label><?php esc_html_e( 'Address', 'wp-invoice-manager' ); ?></label>
 						<textarea name="biller_address"><?php echo $invoice ? esc_textarea( $invoice['biller_address'] ) : esc_textarea( $company_addr ); ?></textarea>
 					</div>
@@ -208,9 +214,17 @@ $selected_terms = $is_edit
 								</span>
 							</td>
 							<td class="col-desc">
-								<input type="text" name="items[<?php echo $i; ?>][description]"
-									value="<?php echo esc_attr( $item['description'] ); ?>"
-									placeholder="<?php esc_attr_e( 'Item description', 'wp-invoice-manager' ); ?>">
+								<div class="wim-rte">
+									<div class="wim-rte-toolbar">
+										<button type="button" class="wim-rte-btn" data-cmd="bold" title="<?php esc_attr_e( 'Bold', 'wp-invoice-manager' ); ?>"><b>B</b></button>
+										<button type="button" class="wim-rte-btn wim-rte-link-btn" title="<?php esc_attr_e( 'Add link', 'wp-invoice-manager' ); ?>">
+											<span class="dashicons dashicons-admin-links"></span>
+										</button>
+									</div>
+									<div class="wim-rte-editable" contenteditable="true" data-placeholder="<?php esc_attr_e( 'Item description', 'wp-invoice-manager' ); ?>"><?php echo wp_kses( $item['description'], WP_IM_Invoice::description_allowed_html() ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></div>
+									<input type="hidden" class="wim-rte-input" name="items[<?php echo $i; ?>][description]"
+										value="<?php echo esc_attr( $item['description'] ); ?>">
+								</div>
 							</td>
 							<td class="col-qty">
 								<input type="number" name="items[<?php echo $i; ?>][quantity]"

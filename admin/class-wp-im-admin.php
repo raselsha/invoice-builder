@@ -357,6 +357,7 @@ class WP_IM_Admin {
 		update_option( 'wp_im_invoice_prefix', sanitize_text_field( $_POST['invoice_prefix'] ?? 'INV-' ) );
 		update_option( 'wp_im_company_name',   sanitize_text_field( $_POST['company_name'] ?? '' ) );
 		update_option( 'wp_im_company_email',  sanitize_email( $_POST['company_email'] ?? '' ) );
+		update_option( 'wp_im_company_phone',  sanitize_text_field( $_POST['company_phone'] ?? '' ) );
 		update_option( 'wp_im_company_address',sanitize_textarea_field( $_POST['company_address'] ?? '' ) );
 		update_option( 'wp_im_default_currency', sanitize_text_field( $_POST['default_currency'] ?? 'USD' ) );
 		update_option( 'wp_im_default_tax',    floatval( $_POST['default_tax'] ?? 0 ) );

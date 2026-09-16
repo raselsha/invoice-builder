@@ -4,7 +4,7 @@ Tags:              invoice, billing, payment, PDF, client management
 Requires at least: 5.8
 Tested up to:      6.5
 Requires PHP:      7.4
-Stable tag:        1.2.2
+Stable tag:        1.3.0
 License:           GPLv2 or later
 License URI:       https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -75,6 +75,17 @@ Invoice meta is stored as WordPress post meta on the `wp_invoice` custom post ty
 Yes – all strings use `__()` / `_e()` with the `wp-invoice-manager` text domain.
 
 == Changelog ==
+
+= 1.3.0 =
+* New: Biller ("Your Details") now has a Phone field, matching Client Details — plus a
+  Company Phone setting so it can default automatically on new invoices.
+* New: line item Description is now a small rich-text field — bold, hyperlinks, and a
+  second line, with the formatting carried through to the printed/PDF invoice.
+* Security: line item descriptions are sanitized with a strict allowed-tag list
+  (b/strong/a/br only) — script tags and event-handler attributes are stripped on save.
+* Fix: the printed invoice's biller block reuses the same single-pass line-building
+  approach as the client block, so adding the phone line can't reintroduce the earlier
+  white-space:pre-line gap bug.
 
 = 1.2.2 =
 * Fix: on the printed invoice, the "Bill To" block showed a stray gap between the client name
