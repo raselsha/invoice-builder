@@ -178,7 +178,7 @@ class WP_IM_Invoice {
 			self::META_BILLER_PHONE   => sanitize_text_field( $data['biller_phone'] ?? '' ),
 			self::META_BILLER_ADDRESS => sanitize_textarea_field( $data['biller_address'] ?? '' ),
 			self::META_CURRENCY       => sanitize_text_field( $data['currency'] ?? 'USD' ),
-			self::META_NOTES          => sanitize_textarea_field( $data['notes'] ?? '' ),
+			self::META_NOTES          => trim( wp_kses( (string) ( $data['notes'] ?? '' ), self::notes_allowed_html() ) ),
 			self::META_DISCOUNT       => floatval( $data['discount'] ?? 0 ),
 			self::META_TERMS_SELECTED => array_map( 'absint', (array) ( $data['terms_selected'] ?? array() ) ),
 		);
@@ -445,6 +445,20 @@ class WP_IM_Invoice {
 			),
 			'br'     => array(),
 		);
+	}
+
+	/**
+	 * Allowed HTML for the Notes / Terms rich-text field — the line-item
+	 * set plus bullet/numbered lists.
+	 *
+	 * @return array
+	 */
+	public static function notes_allowed_html() {
+		return array_merge( self::description_allowed_html(), array(
+			'ul' => array(),
+			'ol' => array(),
+			'li' => array(),
+		) );
 	}
 
 	/**

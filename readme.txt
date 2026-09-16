@@ -4,7 +4,7 @@ Tags:              invoice, billing, payment, PDF, client management
 Requires at least: 5.8
 Tested up to:      6.5
 Requires PHP:      7.4
-Stable tag:        1.3.0
+Stable tag:        1.3.1
 License:           GPLv2 or later
 License URI:       https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -75,6 +75,14 @@ Invoice meta is stored as WordPress post meta on the `wp_invoice` custom post ty
 Yes – all strings use `__()` / `_e()` with the `wp-invoice-manager` text domain.
 
 == Changelog ==
+
+= 1.3.1 =
+* New: the Notes / Terms field is now a small rich-text editor too — bold, bullet and
+  numbered lists, and links, on top of what the line-item description field already had.
+* Notes are sanitized with an allowed-tag list (b/strong/a/br/ul/ol/li); disallowed
+  markup (e.g. script tags) is stripped on save.
+* Backward compatible: notes saved before this change (plain text with literal line
+  breaks) still print with their line breaks intact.
 
 = 1.3.0 =
 * New: Biller ("Your Details") now has a Phone field, matching Client Details — plus a

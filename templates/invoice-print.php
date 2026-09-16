@@ -130,6 +130,9 @@
 		line-height: 1.7;
 	}
 	.inv-notes-label { font-weight: 700; color: #1e293b; margin-bottom: 6px; text-transform: uppercase; font-size: 11px; letter-spacing: .06em; }
+	.inv-notes ul, .inv-notes ol { margin: 6px 0 0 18px; padding: 0; }
+	.inv-notes li { margin-bottom: 3px; }
+	.inv-notes a { color: <?php echo esc_attr( $primary_color ); ?>; }
 	/* Terms & Conditions (separate container from Notes) */
 	.inv-terms {
 		margin-top: 20px;
@@ -309,7 +312,12 @@
 		<?php if ( ! empty( $invoice['notes'] ) ) : ?>
 		<div class="inv-notes">
 			<div class="inv-notes-label">Notes</div>
-			<?php echo nl2br( esc_html( $invoice['notes'] ) ); ?>
+			<?php
+			// nl2br() first so notes saved before this field became rich-text
+			// (plain text with literal newlines) still show line breaks; it's a
+			// no-op for new content, which uses real <br> tags, not \n chars.
+			echo wp_kses( nl2br( $invoice['notes'] ), WP_IM_Invoice::notes_allowed_html() ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+			?>
 		</div>
 		<?php endif; ?>
 

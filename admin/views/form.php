@@ -291,7 +291,22 @@ $selected_terms = $is_edit
 					<?php esc_html_e( 'Notes / Terms', 'wp-invoice-manager' ); ?>
 				</h3>
 				<div class="wim-field">
-					<textarea name="notes" rows="4"><?php echo $invoice ? esc_textarea( $invoice['notes'] ) : ''; ?></textarea>
+					<div class="wim-rte wim-rte-large">
+						<div class="wim-rte-toolbar">
+							<button type="button" class="wim-rte-btn" data-cmd="bold" title="<?php esc_attr_e( 'Bold', 'wp-invoice-manager' ); ?>"><b>B</b></button>
+							<button type="button" class="wim-rte-btn" data-cmd="insertUnorderedList" title="<?php esc_attr_e( 'Bullet list', 'wp-invoice-manager' ); ?>">
+								<span class="dashicons dashicons-editor-ul"></span>
+							</button>
+							<button type="button" class="wim-rte-btn" data-cmd="insertOrderedList" title="<?php esc_attr_e( 'Numbered list', 'wp-invoice-manager' ); ?>">
+								<span class="dashicons dashicons-editor-ol"></span>
+							</button>
+							<button type="button" class="wim-rte-btn wim-rte-link-btn" title="<?php esc_attr_e( 'Add link', 'wp-invoice-manager' ); ?>">
+								<span class="dashicons dashicons-admin-links"></span>
+							</button>
+						</div>
+						<div class="wim-rte-editable" contenteditable="true" data-placeholder="<?php esc_attr_e( 'Notes for the client, payment instructions, etc.', 'wp-invoice-manager' ); ?>"><?php echo $invoice ? wp_kses( $invoice['notes'], WP_IM_Invoice::notes_allowed_html() ) : ''; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></div>
+						<input type="hidden" class="wim-rte-input" name="notes" value="<?php echo esc_attr( $invoice ? $invoice['notes'] : '' ); ?>">
+					</div>
 				</div>
 
 				<?php if ( ! empty( $all_terms ) ) : ?>

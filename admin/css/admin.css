@@ -1054,3 +1054,9 @@
 	pointer-events: none;
 }
 .wim-rte-editable a { color: var(--wim-info); text-decoration: underline; }
+.wim-rte-editable ul,
+.wim-rte-editable ol { margin: 0 0 0 20px; padding: 0; }
+.wim-rte-editable li { margin-bottom: 2px; }
+
+.wim-rte-large .wim-rte-editable { min-height: 100px; }
+.wim-rte-large .wim-rte-toolbar { margin-bottom: 2px; }
