@@ -4,7 +4,7 @@ Tags:              invoice, billing, payment, PDF, client management
 Requires at least: 5.8
 Tested up to:      6.5
 Requires PHP:      7.4
-Stable tag:        1.3.2
+Stable tag:        1.3.3
 License:           GPLv2 or later
 License URI:       https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -75,6 +75,13 @@ Invoice meta is stored as WordPress post meta on the `wp_invoice` custom post ty
 Yes – all strings use `__()` / `_e()` with the `wp-invoice-manager` text domain.
 
 == Changelog ==
+
+= 1.3.3 =
+* Fix: on the printed/PDF invoice, the Status pill sat 12px right of the "Status"
+  label above it (its own left padding, not offset by anything), while the
+  Invoice Date, Due Date, and Currency values stayed flush-left under their
+  labels. The badge now cancels that padding with a matching negative margin,
+  so its text lines up with the label exactly like the other status-bar fields.
 
 = 1.3.2 =
 * Fix: a typical invoice printed to 2 pages. Print-only CSS now uses tighter spacing

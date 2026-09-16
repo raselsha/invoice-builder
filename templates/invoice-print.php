@@ -47,6 +47,7 @@
 	.inv-status-bar strong { color: <?php echo esc_attr( $date_text_color ); ?>; display: block; font-size: 13px; }
 	.badge {
 		display: inline-block;
+		margin-left: -12px;
 		padding: 2px 12px;
 		border-radius: 20px;
 		font-size: 11px;
