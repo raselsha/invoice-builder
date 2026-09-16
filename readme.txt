@@ -4,7 +4,7 @@ Tags:              invoice, billing, payment, PDF, client management
 Requires at least: 5.8
 Tested up to:      6.5
 Requires PHP:      7.4
-Stable tag:        1.3.1
+Stable tag:        1.3.2
 License:           GPLv2 or later
 License URI:       https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -75,6 +75,13 @@ Invoice meta is stored as WordPress post meta on the `wp_invoice` custom post ty
 Yes – all strings use `__()` / `_e()` with the `wp-invoice-manager` text domain.
 
 == Changelog ==
+
+= 1.3.2 =
+* Fix: a typical invoice printed to 2 pages. Print-only CSS now uses tighter spacing
+  throughout (header, status bar, items table, totals, notes/terms, footer) and a
+  smaller @page margin, so it fits on one page again. The on-screen editor view is
+  unaffected — only the printed/PDF output changed. Verified by rendering to PDF with
+  headless Chrome (1 page, was 2).
 
 = 1.3.1 =
 * New: the Notes / Terms field is now a small rich-text editor too — bold, bullet and

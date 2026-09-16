@@ -161,11 +161,47 @@
 		border-top: 1px solid #e2e8f0;
 		margin-top: 40px;
 	}
-	/* Print */
+	/* Print — compact spacing so a normal invoice fits on one page.
+	   The on-screen look above is untouched; these overrides only apply
+	   when actually printing / saving as PDF. */
 	@media print {
-		body { background: white; padding: 0; }
+		@page { size: auto; margin: 10mm; }
+
+		body { background: white; padding: 0; font-size: 12px; }
 		.invoice-shell { box-shadow: none; border-radius: 0; }
 		.no-print { display: none !important; }
+
+		.inv-header { padding: 16px 24px; }
+		.inv-header .brand { font-size: 17px; }
+		.inv-header .brand small { margin-top: 2px; }
+		.inv-meta .inv-number { font-size: 20px; }
+
+		.inv-status-bar { padding: 6px 24px; gap: 20px; }
+
+		.inv-body { padding: 16px 24px; }
+
+		.parties { gap: 24px; margin-bottom: 14px; }
+		.party-label { margin-bottom: 4px; }
+		.party-name { font-size: 14px; margin-bottom: 2px; }
+		.party-detail { line-height: 1.35; }
+
+		.items-table { margin-bottom: 12px; }
+		.items-table thead th { padding: 6px 8px; }
+		.items-table tbody td { padding: 6px 8px; }
+
+		.totals-wrap { margin-bottom: 12px; }
+		.totals-row { padding: 4px 0; font-size: 12px; }
+		.totals-row.grand-total { padding-top: 6px; margin-top: 2px; font-size: 15px; }
+
+		.inv-notes { padding: 10px 14px; line-height: 1.4; }
+		.inv-notes-label { margin-bottom: 3px; }
+
+		.inv-terms { margin-top: 10px; padding: 10px 14px; }
+		.inv-terms-label { margin-bottom: 5px; }
+		.inv-terms ol { line-height: 1.4; }
+		.inv-terms ol li { margin-bottom: 2px; }
+
+		.inv-footer { padding: 8px 24px; margin-top: 14px; }
 	}
 </style>
 </head>
