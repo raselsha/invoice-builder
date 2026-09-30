@@ -4,7 +4,7 @@ Tags:              invoice, billing, payment, PDF, client management
 Requires at least: 5.8
 Tested up to:      6.5
 Requires PHP:      7.4
-Stable tag:        1.4.1
+Stable tag:        1.4.2
 License:           GPLv2 or later
 License URI:       https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -79,14 +79,20 @@ Yes – all strings use `__()` / `_e()` with the `wp-invoice-manager` text domai
 
 == Changelog ==
 
+= 1.4.2 =
+* Fix: a fully-paid invoice's totals box was showing an "Amount Paid" / "Paid in
+  Full" breakdown even when it never had any real partial-payment activity — it
+  now just shows a plain "Total" row, exactly like a normal invoice, whenever the
+  invoice's status is Paid. The Total/Amount Paid/Balance Due breakdown now only
+  appears for invoices that are genuinely in a partial (part-paid, part-due) state.
+
 = 1.4.1 =
 * Fix: the printed/PDF invoice's "From" block never showed the biller's email (only
   phone + address) — unlike "Bill To", which shows the client's email, phone, and
   address. Biller email now appears there too.
 * Fix: a paid invoice's totals box could read "Total Due" or "Balance Due ৳0.00" —
   technically correct but confusing on a fully-settled invoice. Once nothing is
-  owed (whether from logged payments or a manually-set Paid status with no payment
-  log), it now shows a green "✓ Paid in Full" instead of any "Due" wording.
+  owed (a Paid-status invoice), it no longer shows any "Due" wording.
   Partially-paid invoices still correctly show "Balance Due".
 * Fix: the invoice list's Actions column (View/Edit/Print/Duplicate/Share/Delete)
   had grown too wide for its container and was being silently clipped on the right

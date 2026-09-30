@@ -121,10 +121,6 @@
 		font-weight: 800;
 		color: <?php echo esc_attr( $header_color ); ?>;
 	}
-	.totals-row.grand-total.is-settled {
-		border-top-color: #10b981;
-		color: #059669;
-	}
 	/* Notes */
 	.inv-notes {
 		background: #f8f9fc;
@@ -347,7 +343,12 @@
 					<span>- <?php echo esc_html( $symbol . number_format( $totals['discount'], 2 ) ); ?></span>
 				</div>
 				<?php endif; ?>
-				<?php if ( $totals['paid'] > 0 && $totals['balance'] > 0 ) : ?>
+				<?php if ( 'paid' === $invoice['status'] ) : ?>
+				<div class="totals-row grand-total">
+					<span>Total</span>
+					<span><?php echo esc_html( $symbol . number_format( $totals['total'], 2 ) ); ?></span>
+				</div>
+				<?php elseif ( $totals['paid'] > 0 && $totals['balance'] > 0 ) : ?>
 				<div class="totals-row">
 					<span>Total</span>
 					<span><?php echo esc_html( $symbol . number_format( $totals['total'], 2 ) ); ?></span>
@@ -359,15 +360,6 @@
 				<div class="totals-row grand-total">
 					<span>Balance Due</span>
 					<span><?php echo esc_html( $symbol . number_format( $totals['balance'], 2 ) ); ?></span>
-				</div>
-				<?php elseif ( $totals['paid'] > 0 || 'paid' === $invoice['status'] ) : ?>
-				<div class="totals-row">
-					<span>Total</span>
-					<span><?php echo esc_html( $symbol . number_format( $totals['total'], 2 ) ); ?></span>
-				</div>
-				<div class="totals-row grand-total is-settled">
-					<span>✓ Paid in Full</span>
-					<span><?php echo esc_html( $symbol . number_format( $totals['total'], 2 ) ); ?></span>
 				</div>
 				<?php else : ?>
 				<div class="totals-row grand-total">
