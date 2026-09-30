@@ -117,6 +117,13 @@ Yes – all strings use `__()` / `_e()` with the `wp-invoice-manager` text domai
   (that calculation was unused dead code); currency-aware totals now live on the
   new Reports page instead.
 
+= 1.3.3 =
+* Fix: on the printed/PDF invoice, the Status pill sat 12px right of the "Status"
+  label above it (its own left padding, not offset by anything), while the
+  Invoice Date, Due Date, and Currency values stayed flush-left under their
+  labels. The badge now cancels that padding with a matching negative margin,
+  so its text lines up with the label exactly like the other status-bar fields.
+
 = 1.3.2 =
 * Fix: a typical invoice printed to 2 pages. Print-only CSS now uses tighter spacing
   throughout (header, status bar, items table, totals, notes/terms, footer) and a
