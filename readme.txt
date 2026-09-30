@@ -4,7 +4,7 @@ Tags:              invoice, billing, payment, PDF, client management
 Requires at least: 5.8
 Tested up to:      6.5
 Requires PHP:      7.4
-Stable tag:        1.4.0
+Stable tag:        1.4.1
 License:           GPLv2 or later
 License URI:       https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -78,6 +78,24 @@ Invoice meta is stored as WordPress post meta on the `wp_invoice` custom post ty
 Yes – all strings use `__()` / `_e()` with the `wp-invoice-manager` text domain.
 
 == Changelog ==
+
+= 1.4.1 =
+* Fix: the printed/PDF invoice's "From" block never showed the biller's email (only
+  phone + address) — unlike "Bill To", which shows the client's email, phone, and
+  address. Biller email now appears there too.
+* Fix: a paid invoice's totals box could read "Total Due" or "Balance Due ৳0.00" —
+  technically correct but confusing on a fully-settled invoice. Once nothing is
+  owed (whether from logged payments or a manually-set Paid status with no payment
+  log), it now shows a green "✓ Paid in Full" instead of any "Due" wording.
+  Partially-paid invoices still correctly show "Balance Due".
+* Fix: the invoice list's Actions column (View/Edit/Print/Duplicate/Share/Delete)
+  had grown too wide for its container and was being silently clipped on the right
+  edge by the table's rounded-corner overflow, making the page look uncentered.
+  Actions are now compact icon-only buttons (with hover tooltips), and the table
+  has a safe inner horizontal-scroll fallback for narrow screens.
+* Fix: the recurring-invoice indicator icon could wrap onto its own line below the
+  invoice number on the list page. It now sits inline, before the number, and
+  never wraps.
 
 = 1.4.0 =
 * New: Partial / deposit payment tracking — record one or more payments against an

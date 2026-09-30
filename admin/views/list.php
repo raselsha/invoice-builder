@@ -114,6 +114,7 @@ $bulk_statuses = WP_IM_Invoice::get_statuses();
 		<?php endif; ?>
 
 	<div class="wim-table-wrap">
+	<div class="wim-table-scroll">
 		<table class="wim-table">
 			<thead>
 				<tr>
@@ -174,10 +175,12 @@ $bulk_statuses = WP_IM_Invoice::get_statuses();
 				<tr>
 					<td class="col-check"><input type="checkbox" class="wim-row-check" name="invoice_ids[]" value="<?php echo esc_attr( $post->ID ); ?>"></td>
 					<td>
-						<strong><?php echo esc_html( $inv['number'] ); ?></strong>
-						<?php if ( ! empty( $inv['recurring_frequency'] ) ) : ?>
-							<span class="dashicons dashicons-update" style="font-size:13px;width:13px;height:13px;color:var(--wim-info);margin-left:4px" title="<?php esc_attr_e( 'Recurring invoice', 'wp-invoice-manager' ); ?>"></span>
-						<?php endif; ?>
+						<span class="wim-invoice-number">
+							<?php if ( ! empty( $inv['recurring_frequency'] ) ) : ?>
+								<span class="dashicons dashicons-update wim-recurring-icon" title="<?php esc_attr_e( 'Recurring invoice', 'wp-invoice-manager' ); ?>"></span>
+							<?php endif; ?>
+							<strong><?php echo esc_html( $inv['number'] ); ?></strong>
+						</span>
 					</td>
 					<td>
 						<?php echo esc_html( $inv['client_name'] ); ?><br>
@@ -195,30 +198,30 @@ $bulk_statuses = WP_IM_Invoice::get_statuses();
 						<div class="col-actions">
 							<a href="<?php echo esc_url( $print_url ); ?>"
 							   target="_blank"
-							   class="wim-btn wim-btn-secondary wim-btn-sm">
-								<span class="dashicons dashicons-visibility" style="font-size:14px;width:14px;height:14px;margin-top:2px"></span>
-								<?php esc_html_e( 'View', 'wp-invoice-manager' ); ?>
+							   class="wim-icon-btn"
+							   title="<?php esc_attr_e( 'View', 'wp-invoice-manager' ); ?>" aria-label="<?php esc_attr_e( 'View', 'wp-invoice-manager' ); ?>">
+								<span class="dashicons dashicons-visibility"></span>
 							</a>
 							<a href="<?php echo esc_url( add_query_arg( array( 'page' => 'wp-im-new-invoice', 'invoice_id' => $post->ID ), admin_url( 'admin.php' ) ) ); ?>"
-							   class="wim-btn wim-btn-secondary wim-btn-sm">
-								<span class="dashicons dashicons-edit" style="font-size:14px;width:14px;height:14px;margin-top:2px"></span>
-								<?php esc_html_e( 'Edit', 'wp-invoice-manager' ); ?>
+							   class="wim-icon-btn"
+							   title="<?php esc_attr_e( 'Edit', 'wp-invoice-manager' ); ?>" aria-label="<?php esc_attr_e( 'Edit', 'wp-invoice-manager' ); ?>">
+								<span class="dashicons dashicons-edit"></span>
 							</a>
 							<a href="<?php echo esc_url( $print_url ); ?>"
 							   target="_blank"
-							   class="wim-btn wim-btn-secondary wim-btn-sm">
-								<span class="dashicons dashicons-printer" style="font-size:14px;width:14px;height:14px;margin-top:2px"></span>
-								<?php esc_html_e( 'Print', 'wp-invoice-manager' ); ?>
+							   class="wim-icon-btn"
+							   title="<?php esc_attr_e( 'Print', 'wp-invoice-manager' ); ?>" aria-label="<?php esc_attr_e( 'Print', 'wp-invoice-manager' ); ?>">
+								<span class="dashicons dashicons-printer"></span>
 							</a>
 							<a href="<?php echo esc_url( $duplicate_url ); ?>"
-							   class="wim-btn wim-btn-secondary wim-btn-sm">
-								<span class="dashicons dashicons-admin-page" style="font-size:14px;width:14px;height:14px;margin-top:2px"></span>
-								<?php esc_html_e( 'Duplicate', 'wp-invoice-manager' ); ?>
+							   class="wim-icon-btn"
+							   title="<?php esc_attr_e( 'Duplicate', 'wp-invoice-manager' ); ?>" aria-label="<?php esc_attr_e( 'Duplicate', 'wp-invoice-manager' ); ?>">
+								<span class="dashicons dashicons-admin-page"></span>
 							</a>
 							<div class="wim-share-wrap">
-								<button type="button" class="wim-btn wim-btn-secondary wim-btn-sm wim-share-btn">
-									<span class="dashicons dashicons-share" style="font-size:14px;width:14px;height:14px;margin-top:2px"></span>
-									<?php esc_html_e( 'Share', 'wp-invoice-manager' ); ?>
+								<button type="button" class="wim-icon-btn wim-share-btn"
+									title="<?php esc_attr_e( 'Share', 'wp-invoice-manager' ); ?>" aria-label="<?php esc_attr_e( 'Share', 'wp-invoice-manager' ); ?>">
+									<span class="dashicons dashicons-share"></span>
 								</button>
 								<div class="wim-share-popover">
 									<label><?php esc_html_e( 'Shareable link — anyone with this link can view the invoice, no login needed.', 'wp-invoice-manager' ); ?></label>
@@ -242,9 +245,9 @@ $bulk_statuses = WP_IM_Invoice::get_statuses();
 								</div>
 							</div>
 							<a href="<?php echo esc_url( $delete_url ); ?>"
-							   class="wim-btn wim-btn-danger wim-btn-sm wim-delete-link">
-								<span class="dashicons dashicons-trash" style="font-size:14px;width:14px;height:14px;margin-top:2px"></span>
-								<?php esc_html_e( 'Delete', 'wp-invoice-manager' ); ?>
+							   class="wim-icon-btn wim-icon-btn-danger wim-delete-link"
+							   title="<?php esc_attr_e( 'Delete', 'wp-invoice-manager' ); ?>" aria-label="<?php esc_attr_e( 'Delete', 'wp-invoice-manager' ); ?>">
+								<span class="dashicons dashicons-trash"></span>
 							</a>
 						</div>
 					</td>
@@ -265,6 +268,7 @@ $bulk_statuses = WP_IM_Invoice::get_statuses();
 			<?php endif; ?>
 			</tbody>
 		</table>
+	</div>
 	</div>
 	</form>
 

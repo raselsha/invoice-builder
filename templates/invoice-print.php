@@ -121,6 +121,10 @@
 		font-weight: 800;
 		color: <?php echo esc_attr( $header_color ); ?>;
 	}
+	.totals-row.grand-total.is-settled {
+		border-top-color: #10b981;
+		color: #059669;
+	}
 	/* Notes */
 	.inv-notes {
 		background: #f8f9fc;
@@ -263,6 +267,9 @@
 					// array and echoed in a single pass (white-space:pre-line
 					// would otherwise turn template whitespace into blank lines).
 					$biller_lines = array();
+					if ( ! empty( $invoice['biller_email'] ) ) {
+						$biller_lines[] = esc_html( $invoice['biller_email'] );
+					}
 					if ( ! empty( $invoice['biller_phone'] ) ) {
 						$biller_lines[] = esc_html( $invoice['biller_phone'] );
 					}
@@ -340,7 +347,7 @@
 					<span>- <?php echo esc_html( $symbol . number_format( $totals['discount'], 2 ) ); ?></span>
 				</div>
 				<?php endif; ?>
-				<?php if ( ! empty( $totals['paid'] ) && $totals['paid'] > 0 ) : ?>
+				<?php if ( $totals['paid'] > 0 && $totals['balance'] > 0 ) : ?>
 				<div class="totals-row">
 					<span>Total</span>
 					<span><?php echo esc_html( $symbol . number_format( $totals['total'], 2 ) ); ?></span>
@@ -352,6 +359,15 @@
 				<div class="totals-row grand-total">
 					<span>Balance Due</span>
 					<span><?php echo esc_html( $symbol . number_format( $totals['balance'], 2 ) ); ?></span>
+				</div>
+				<?php elseif ( $totals['paid'] > 0 || 'paid' === $invoice['status'] ) : ?>
+				<div class="totals-row">
+					<span>Total</span>
+					<span><?php echo esc_html( $symbol . number_format( $totals['total'], 2 ) ); ?></span>
+				</div>
+				<div class="totals-row grand-total is-settled">
+					<span>✓ Paid in Full</span>
+					<span><?php echo esc_html( $symbol . number_format( $totals['total'], 2 ) ); ?></span>
 				</div>
 				<?php else : ?>
 				<div class="totals-row grand-total">
