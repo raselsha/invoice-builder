@@ -27,8 +27,16 @@ class WP_IM_Invoice {
 	const META_CURRENCY      = '_invoice_currency';
 	const META_NOTES         = '_invoice_notes';
 	const META_DISCOUNT      = '_invoice_discount';
+	const META_DISCOUNT_TYPE = '_invoice_discount_type';
 	const META_TERMS_SELECTED= '_invoice_terms_selected';
 	const META_SHARE_TOKEN   = '_invoice_share_token';
+	const META_PAYMENTS      = '_invoice_payments';
+	const META_RECURRING_FREQUENCY = '_invoice_recurring_frequency';
+	const META_RECURRING_NEXT_DATE = '_invoice_recurring_next_date';
+	const META_RECURRING_END_DATE  = '_invoice_recurring_end_date';
+	const META_RECURRING_PARENT    = '_invoice_recurring_parent';
+	const META_SHARE_VIEWS         = '_invoice_share_views';
+	const META_LAST_REMINDER_SENT  = '_invoice_last_reminder_sent';
 
 	/** @var int */
 	private $post_id;
@@ -53,10 +61,17 @@ class WP_IM_Invoice {
 	 * @return int|WP_Error New post ID or error.
 	 */
 	public static function create( array $data ) {
-		// Generate invoice number
-		$prefix  = get_option( 'wp_im_invoice_prefix', 'INV-' );
-		$number  = get_option( 'wp_im_next_invoice_number', 1 );
-		$inv_num = $prefix . str_pad( $number, 5, '0', STR_PAD_LEFT );
+		// Generate invoice number. The prefix may contain a {year} token; when
+		// "reset numbering every year" is on, the counter itself is also kept
+		// per-year (a fresh sequence starting at 1 each year) instead of one
+		// counter running forever — e.g. INV-2026-00001, INV-2027-00001, …
+		$prefix_raw   = get_option( 'wp_im_invoice_prefix', 'INV-' );
+		$year         = current_time( 'Y' );
+		$prefix       = str_replace( '{year}', $year, $prefix_raw );
+		$reset_yearly = get_option( 'wp_im_reset_number_yearly', false );
+		$counter_key  = $reset_yearly ? 'wp_im_next_invoice_number_' . $year : 'wp_im_next_invoice_number';
+		$number       = get_option( $counter_key, 1 );
+		$inv_num      = $prefix . str_pad( $number, 5, '0', STR_PAD_LEFT );
 
 		$post_id = wp_insert_post( array(
 			'post_type'   => WP_IM_Post_Type::POST_TYPE,
@@ -69,7 +84,7 @@ class WP_IM_Invoice {
 		}
 
 		// Increment counter
-		update_option( 'wp_im_next_invoice_number', $number + 1 );
+		update_option( $counter_key, $number + 1 );
 
 		$invoice = new self( $post_id );
 		$invoice->save_meta( $data, $inv_num );
@@ -118,6 +133,44 @@ class WP_IM_Invoice {
 		);
 
 		return true;
+	}
+
+	/**
+	 * Duplicate an invoice: copies client, biller, items, discount, currency,
+	 * notes and terms into a brand-new draft dated today. Recurrence settings,
+	 * payments, and share/view history are intentionally not copied.
+	 *
+	 * @param int $post_id Source invoice.
+	 * @return int|false New invoice post ID, or false if the source is gone.
+	 */
+	public static function duplicate( $post_id ) {
+		$source = self::get( absint( $post_id ) );
+		if ( ! $source ) {
+			return false;
+		}
+
+		$today  = current_time( 'Y-m-d' );
+		$new_id = self::create( array(
+			'status'         => 'draft',
+			'invoice_date'   => $today,
+			'due_date'       => gmdate( 'Y-m-d', strtotime( "{$today} +30 days" ) ),
+			'client_name'    => $source['client_name'],
+			'client_email'   => $source['client_email'],
+			'client_phone'   => $source['client_phone'],
+			'client_address' => $source['client_address'],
+			'biller_name'    => $source['biller_name'],
+			'biller_email'   => $source['biller_email'],
+			'biller_phone'   => $source['biller_phone'],
+			'biller_address' => $source['biller_address'],
+			'currency'       => $source['currency'],
+			'notes'          => $source['notes'],
+			'discount'       => $source['discount'],
+			'discount_type'  => $source['discount_type'],
+			'terms_selected' => $source['terms_selected'],
+			'items'          => $source['items'],
+		) );
+
+		return is_wp_error( $new_id ) ? false : $new_id;
 	}
 
 	/**
@@ -180,7 +233,11 @@ class WP_IM_Invoice {
 			self::META_CURRENCY       => sanitize_text_field( $data['currency'] ?? 'USD' ),
 			self::META_NOTES          => trim( wp_kses( (string) ( $data['notes'] ?? '' ), self::notes_allowed_html() ) ),
 			self::META_DISCOUNT       => floatval( $data['discount'] ?? 0 ),
+			self::META_DISCOUNT_TYPE  => 'percent' === ( $data['discount_type'] ?? 'flat' ) ? 'percent' : 'flat',
 			self::META_TERMS_SELECTED => array_map( 'absint', (array) ( $data['terms_selected'] ?? array() ) ),
+			self::META_RECURRING_FREQUENCY => ! empty( $data['is_recurring'] ) ? sanitize_text_field( $data['recurring_frequency'] ?? 'monthly' ) : '',
+			self::META_RECURRING_NEXT_DATE  => sanitize_text_field( $data['recurring_next_date'] ?? '' ),
+			self::META_RECURRING_END_DATE   => sanitize_text_field( $data['recurring_end_date'] ?? '' ),
 		);
 
 		foreach ( $map as $key => $value ) {
@@ -247,7 +304,7 @@ class WP_IM_Invoice {
 	/**
 	 * Calculate totals.
 	 *
-	 * @return array { subtotal, tax_total, discount, total }
+	 * @return array { subtotal, tax_total, discount, total, paid, balance }
 	 */
 	public function calculate_totals() {
 		$items     = $this->get_items();
@@ -260,15 +317,469 @@ class WP_IM_Invoice {
 			$tax_total += $line * ( floatval( $item['tax_rate'] ) / 100 );
 		}
 
-		$discount = floatval( get_post_meta( $this->post_id, self::META_DISCOUNT, true ) );
-		$total    = $subtotal + $tax_total - $discount;
+		$discount_raw  = floatval( get_post_meta( $this->post_id, self::META_DISCOUNT, true ) );
+		$discount_type = get_post_meta( $this->post_id, self::META_DISCOUNT_TYPE, true );
+		$discount      = 'percent' === $discount_type ? ( $subtotal * $discount_raw / 100 ) : $discount_raw;
+		$total         = max( 0, $subtotal + $tax_total - $discount );
+
+		$paid = 0.0;
+		foreach ( $this->get_payments() as $payment ) {
+			$paid += floatval( $payment['amount'] );
+		}
 
 		return array(
 			'subtotal'  => $subtotal,
 			'tax_total' => $tax_total,
 			'discount'  => $discount,
-			'total'     => max( 0, $total ),
+			'total'     => $total,
+			'paid'      => $paid,
+			'balance'   => max( 0, $total - $paid ),
 		);
+	}
+
+	/**
+	 * Fetch recorded payments for this invoice, newest first.
+	 *
+	 * @return array[]
+	 */
+	public function get_payments() {
+		$payments = get_post_meta( $this->post_id, self::META_PAYMENTS, true );
+		if ( ! is_array( $payments ) ) {
+			return array();
+		}
+		$payments = array_values( array_filter( $payments, 'is_array' ) );
+		usort( $payments, function ( $a, $b ) {
+			return strcmp( $b['date'] ?? '', $a['date'] ?? '' );
+		} );
+		return $payments;
+	}
+
+	/**
+	 * Record a payment against an invoice (a deposit or a balance payment —
+	 * there's no distinction, just a running log) and auto-update its status.
+	 *
+	 * @param int   $post_id
+	 * @param array $data { amount, date, method, note }
+	 * @return string|false New payment id, or false if the amount was invalid.
+	 */
+	public static function add_payment( $post_id, array $data ) {
+		$post_id = absint( $post_id );
+		$amount  = floatval( $data['amount'] ?? 0 );
+
+		if ( $amount <= 0 ) {
+			return false;
+		}
+
+		$payment = array(
+			'id'     => wp_generate_password( 8, false, false ),
+			'amount' => $amount,
+			'date'   => sanitize_text_field( $data['date'] ?? current_time( 'Y-m-d' ) ),
+			'method' => sanitize_text_field( $data['method'] ?? '' ),
+			'note'   => sanitize_text_field( $data['note'] ?? '' ),
+		);
+
+		// Note: (array) cast on '' (no meta yet) would give array(0 => ''),
+		// a phantom non-array entry — check is_array() explicitly instead.
+		$payments = get_post_meta( $post_id, self::META_PAYMENTS, true );
+		if ( ! is_array( $payments ) ) {
+			$payments = array();
+		}
+		$payments[] = $payment;
+		update_post_meta( $post_id, self::META_PAYMENTS, $payments );
+
+		self::recompute_status( $post_id );
+
+		return $payment['id'];
+	}
+
+	/**
+	 * Remove a recorded payment and auto-update the invoice's status.
+	 *
+	 * @param int    $post_id
+	 * @param string $payment_id
+	 * @return bool
+	 */
+	public static function delete_payment( $post_id, $payment_id ) {
+		$post_id  = absint( $post_id );
+		$payments = get_post_meta( $post_id, self::META_PAYMENTS, true );
+		if ( ! is_array( $payments ) ) {
+			$payments = array();
+		}
+
+		$payments = array_values( array_filter( $payments, function ( $p ) use ( $payment_id ) {
+			return is_array( $p ) && ( $p['id'] ?? '' ) !== $payment_id;
+		} ) );
+
+		update_post_meta( $post_id, self::META_PAYMENTS, $payments );
+		self::recompute_status( $post_id );
+
+		return true;
+	}
+
+	/**
+	 * Re-derive an invoice's status from how much of it has been paid.
+	 * Never touches a "cancelled" invoice. Only falls back to "sent" (not
+	 * further back to "draft") when payments are removed down to zero.
+	 *
+	 * @param int $post_id
+	 */
+	private static function recompute_status( $post_id ) {
+		$post_id = absint( $post_id );
+		$status  = get_post_meta( $post_id, self::META_STATUS, true );
+
+		if ( 'cancelled' === $status ) {
+			return;
+		}
+
+		$totals = ( new self( $post_id ) )->calculate_totals();
+
+		if ( $totals['total'] > 0 && $totals['paid'] >= $totals['total'] ) {
+			$new_status = 'paid';
+		} elseif ( $totals['paid'] > 0 ) {
+			$new_status = 'partial';
+		} elseif ( in_array( $status, array( 'paid', 'partial' ), true ) ) {
+			$new_status = 'sent';
+		} else {
+			$new_status = $status;
+		}
+
+		if ( $new_status !== $status ) {
+			update_post_meta( $post_id, self::META_STATUS, $new_status );
+		}
+	}
+
+	/**
+	 * Payment methods offered on the "Record Payment" form.
+	 *
+	 * @return array
+	 */
+	public static function get_payment_methods() {
+		return array(
+			'bank'  => __( 'Bank Transfer', 'wp-invoice-manager' ),
+			'bkash' => __( 'bKash', 'wp-invoice-manager' ),
+			'cash'  => __( 'Cash', 'wp-invoice-manager' ),
+			'card'  => __( 'Card', 'wp-invoice-manager' ),
+			'other' => __( 'Other', 'wp-invoice-manager' ),
+		);
+	}
+
+	/**
+	 * Frequencies offered for a recurring invoice.
+	 *
+	 * @return array
+	 */
+	public static function get_recurring_frequencies() {
+		return array(
+			'monthly'   => __( 'Monthly', 'wp-invoice-manager' ),
+			'quarterly' => __( 'Quarterly (every 3 months)', 'wp-invoice-manager' ),
+			'yearly'    => __( 'Yearly', 'wp-invoice-manager' ),
+		);
+	}
+
+	/**
+	 * Advance a Y-m-d date by one recurring-frequency interval.
+	 *
+	 * @param string $date
+	 * @param string $frequency
+	 * @return string
+	 */
+	private static function advance_date( $date, $frequency ) {
+		$intervals = array(
+			'monthly'   => '+1 month',
+			'quarterly' => '+3 months',
+			'yearly'    => '+1 year',
+		);
+		$interval = $intervals[ $frequency ] ?? '+1 month';
+		return gmdate( 'Y-m-d', strtotime( $date . ' ' . $interval ) );
+	}
+
+	/**
+	 * Find recurring-invoice templates that are due to generate their next
+	 * invoice today (or earlier — e.g. the site was offline when it was due).
+	 *
+	 * @return int[] Post IDs.
+	 */
+	public static function get_due_recurring_templates() {
+		$today = current_time( 'Y-m-d' );
+
+		return get_posts( array(
+			'post_type'      => WP_IM_Post_Type::POST_TYPE,
+			'post_status'    => 'publish',
+			'posts_per_page' => -1,
+			'fields'         => 'ids',
+			'meta_query'     => array( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
+				'relation' => 'AND',
+				array(
+					'key'     => self::META_RECURRING_FREQUENCY,
+					'value'   => '',
+					'compare' => '!=',
+				),
+				array(
+					'key'     => self::META_RECURRING_NEXT_DATE,
+					'value'   => $today,
+					'compare' => '<=',
+					'type'    => 'DATE',
+				),
+			),
+		) );
+	}
+
+	/**
+	 * Generate the next invoice from a recurring template: copies client,
+	 * biller, items, discount, currency, notes and terms; the new invoice
+	 * starts as a draft dated today, with the same invoice→due-date gap as
+	 * the template. Advances the template's own next-run date, and turns
+	 * off its recurrence once past its optional end date.
+	 *
+	 * @param int $template_id
+	 * @return int|false New invoice post ID, or false if the template is gone.
+	 */
+	public static function generate_from_recurring( $template_id ) {
+		$template_id = absint( $template_id );
+		$template    = self::get( $template_id );
+
+		if ( ! $template ) {
+			return false;
+		}
+
+		$today       = current_time( 'Y-m-d' );
+		$offset_days = 30;
+		if ( $template['invoice_date'] && $template['due_date'] ) {
+			$diff = ( strtotime( $template['due_date'] ) - strtotime( $template['invoice_date'] ) ) / DAY_IN_SECONDS;
+			if ( $diff > 0 ) {
+				$offset_days = (int) $diff;
+			}
+		}
+
+		$new_id = self::create( array(
+			'status'         => 'draft',
+			'invoice_date'   => $today,
+			'due_date'       => gmdate( 'Y-m-d', strtotime( "{$today} +{$offset_days} days" ) ),
+			'client_name'    => $template['client_name'],
+			'client_email'   => $template['client_email'],
+			'client_phone'   => $template['client_phone'],
+			'client_address' => $template['client_address'],
+			'biller_name'    => $template['biller_name'],
+			'biller_email'   => $template['biller_email'],
+			'biller_phone'   => $template['biller_phone'],
+			'biller_address' => $template['biller_address'],
+			'currency'       => $template['currency'],
+			'notes'          => $template['notes'],
+			'discount'       => $template['discount'],
+			'terms_selected' => $template['terms_selected'],
+			'items'          => $template['items'],
+		) );
+
+		if ( is_wp_error( $new_id ) ) {
+			return false;
+		}
+
+		update_post_meta( $new_id, self::META_RECURRING_PARENT, $template_id );
+
+		$frequency = get_post_meta( $template_id, self::META_RECURRING_FREQUENCY, true );
+		$next_date = self::advance_date( $today, $frequency );
+		update_post_meta( $template_id, self::META_RECURRING_NEXT_DATE, $next_date );
+
+		$end_date = get_post_meta( $template_id, self::META_RECURRING_END_DATE, true );
+		if ( $end_date && strtotime( $next_date ) > strtotime( $end_date ) ) {
+			update_post_meta( $template_id, self::META_RECURRING_FREQUENCY, '' );
+		}
+
+		return $new_id;
+	}
+
+	/**
+	 * Find sent/partially-paid invoices whose due date has passed — these
+	 * should flip to "overdue" automatically rather than sitting stale.
+	 *
+	 * @return int[] Post IDs.
+	 */
+	public static function get_newly_overdue_ids() {
+		$today = current_time( 'Y-m-d' );
+
+		return get_posts( array(
+			'post_type'      => WP_IM_Post_Type::POST_TYPE,
+			'post_status'    => 'publish',
+			'posts_per_page' => -1,
+			'fields'         => 'ids',
+			'meta_query'     => array( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
+				'relation' => 'AND',
+				array(
+					'key'     => self::META_STATUS,
+					'value'   => array( 'sent', 'partial' ),
+					'compare' => 'IN',
+				),
+				array(
+					'key'     => self::META_DUE_DATE,
+					'value'   => '',
+					'compare' => '!=',
+				),
+				array(
+					'key'     => self::META_DUE_DATE,
+					'value'   => $today,
+					'compare' => '<',
+					'type'    => 'DATE',
+				),
+			),
+		) );
+	}
+
+	/**
+	 * Find overdue invoices due a reminder email — one with a client email,
+	 * and either never reminded or not reminded in the last 7 days.
+	 *
+	 * @return int[] Post IDs.
+	 */
+	public static function get_overdue_for_reminder() {
+		$today = current_time( 'Y-m-d' );
+		$ids   = get_posts( array(
+			'post_type'      => WP_IM_Post_Type::POST_TYPE,
+			'post_status'    => 'publish',
+			'posts_per_page' => -1,
+			'fields'         => 'ids',
+			'meta_query'     => array( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
+				array(
+					'key'   => self::META_STATUS,
+					'value' => 'overdue',
+				),
+				array(
+					'key'     => self::META_CLIENT_EMAIL,
+					'value'   => '',
+					'compare' => '!=',
+				),
+			),
+		) );
+
+		$due = array();
+		foreach ( $ids as $id ) {
+			$last_sent = get_post_meta( $id, self::META_LAST_REMINDER_SENT, true );
+			if ( ! $last_sent || ( strtotime( $today ) - strtotime( $last_sent ) ) >= 7 * DAY_IN_SECONDS ) {
+				$due[] = $id;
+			}
+		}
+		return $due;
+	}
+
+	/**
+	 * Per-currency summary across all invoices — deliberately never sums
+	 * amounts across different currencies together.
+	 *
+	 * @return array currency => { invoiced, paid, outstanding, count }
+	 */
+	public static function get_stats_by_currency() {
+		$stats = array();
+		foreach ( self::get_all() as $post ) {
+			$inv = self::get( $post->ID );
+			$cur = $inv['currency'];
+			if ( ! isset( $stats[ $cur ] ) ) {
+				$stats[ $cur ] = array( 'invoiced' => 0.0, 'paid' => 0.0, 'outstanding' => 0.0, 'count' => 0 );
+			}
+			$stats[ $cur ]['count']++;
+			if ( 'cancelled' === $inv['status'] ) {
+				continue;
+			}
+			$stats[ $cur ]['invoiced']    += $inv['totals']['total'];
+			$stats[ $cur ]['paid']        += $inv['totals']['paid'];
+			$stats[ $cur ]['outstanding'] += $inv['totals']['balance'];
+		}
+		return $stats;
+	}
+
+	/**
+	 * Revenue (money actually received) per month for the last N months,
+	 * bucketed by currency so different currencies are never added together.
+	 *
+	 * @param int $months
+	 * @return array { months: string[], by_currency: array currency => [ 'Y-m' => amount ] }
+	 */
+	public static function get_monthly_revenue( $months = 6 ) {
+		$keys = array();
+		for ( $i = $months - 1; $i >= 0; $i-- ) {
+			$keys[] = gmdate( 'Y-m', strtotime( "-{$i} months" ) );
+		}
+
+		$by_currency = array();
+		foreach ( self::get_all() as $post ) {
+			$currency = get_post_meta( $post->ID, self::META_CURRENCY, true ) ?: 'USD';
+			$invoice  = new self( $post->ID );
+			foreach ( $invoice->get_payments() as $payment ) {
+				$month = substr( $payment['date'], 0, 7 );
+				if ( ! in_array( $month, $keys, true ) ) {
+					continue;
+				}
+				if ( ! isset( $by_currency[ $currency ] ) ) {
+					$by_currency[ $currency ] = array_fill_keys( $keys, 0.0 );
+				}
+				$by_currency[ $currency ][ $month ] += floatval( $payment['amount'] );
+			}
+		}
+
+		return array( 'months' => $keys, 'by_currency' => $by_currency );
+	}
+
+	/**
+	 * Top clients by total invoiced amount, kept separate per currency so a
+	 * BDT client and a USD client are never compared on the same number.
+	 *
+	 * @param int $limit
+	 * @return array[] { name, currency, total }
+	 */
+	public static function get_top_clients( $limit = 5 ) {
+		$clients = array();
+		foreach ( self::get_all() as $post ) {
+			$inv = self::get( $post->ID );
+			if ( 'cancelled' === $inv['status'] || '' === $inv['client_name'] ) {
+				continue;
+			}
+			$key = $inv['client_name'] . '|' . $inv['currency'];
+			if ( ! isset( $clients[ $key ] ) ) {
+				$clients[ $key ] = array( 'name' => $inv['client_name'], 'currency' => $inv['currency'], 'total' => 0.0 );
+			}
+			$clients[ $key ]['total'] += $inv['totals']['total'];
+		}
+		usort( $clients, function ( $a, $b ) {
+			return $b['total'] <=> $a['total'];
+		} );
+		return array_slice( array_values( $clients ), 0, $limit );
+	}
+
+	/**
+	 * Overdue invoices grouped into age buckets by days past due.
+	 *
+	 * @return array { '0-30'|'31-60'|'61-90'|'90+': array[] }
+	 */
+	public static function get_overdue_aging() {
+		$buckets = array(
+			'0-30'  => array(),
+			'31-60' => array(),
+			'61-90' => array(),
+			'90+'   => array(),
+		);
+
+		$today = current_time( 'timestamp' ); // phpcs:ignore WordPress.DateTime.CurrentTimeTimestamp.Requested
+		$posts = self::get_all( array(
+			'meta_query' => array( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
+				array( 'key' => self::META_STATUS, 'value' => 'overdue' ),
+			),
+		) );
+
+		foreach ( $posts as $post ) {
+			$inv = self::get( $post->ID );
+			if ( ! $inv['due_date'] ) {
+				continue;
+			}
+			$days   = max( 0, (int) floor( ( $today - strtotime( $inv['due_date'] ) ) / DAY_IN_SECONDS ) );
+			$bucket = $days <= 30 ? '0-30' : ( $days <= 60 ? '31-60' : ( $days <= 90 ? '61-90' : '90+' ) );
+			$buckets[ $bucket ][] = array(
+				'number'   => $inv['number'],
+				'client'   => $inv['client_name'],
+				'currency' => $inv['currency'],
+				'balance'  => $inv['totals']['balance'],
+				'days'     => $days,
+			);
+		}
+
+		return $buckets;
 	}
 
 	/**
@@ -294,9 +805,17 @@ class WP_IM_Invoice {
 			'currency'       => get_post_meta( $this->post_id, self::META_CURRENCY, true ),
 			'notes'          => get_post_meta( $this->post_id, self::META_NOTES, true ),
 			'discount'       => floatval( get_post_meta( $this->post_id, self::META_DISCOUNT, true ) ),
+			'discount_type'  => get_post_meta( $this->post_id, self::META_DISCOUNT_TYPE, true ) ?: 'flat',
 			'terms_selected' => (array) get_post_meta( $this->post_id, self::META_TERMS_SELECTED, true ),
 			'share_token'    => get_post_meta( $this->post_id, self::META_SHARE_TOKEN, true ),
+			'share_view_count'  => $this->get_share_view_count(),
+			'share_last_viewed' => $this->get_last_viewed(),
+			'recurring_frequency' => get_post_meta( $this->post_id, self::META_RECURRING_FREQUENCY, true ),
+			'recurring_next_date' => get_post_meta( $this->post_id, self::META_RECURRING_NEXT_DATE, true ),
+			'recurring_end_date'  => get_post_meta( $this->post_id, self::META_RECURRING_END_DATE, true ),
+			'recurring_parent'    => get_post_meta( $this->post_id, self::META_RECURRING_PARENT, true ),
 			'items'          => $this->get_items(),
+			'payments'       => $this->get_payments(),
 			'totals'         => $this->calculate_totals(),
 		);
 	}
@@ -330,6 +849,46 @@ class WP_IM_Invoice {
 	}
 
 	/**
+	 * Log one open of the public share link (for "has the client seen this
+	 * invoice?" tracking). Keeps only the most recent 50 timestamps.
+	 *
+	 * @param int $post_id
+	 */
+	public static function record_share_view( $post_id ) {
+		$post_id = absint( $post_id );
+		$views   = get_post_meta( $post_id, self::META_SHARE_VIEWS, true );
+		$views   = is_array( $views ) ? $views : array();
+		$views[] = current_time( 'mysql' );
+		if ( count( $views ) > 50 ) {
+			$views = array_slice( $views, -50 );
+		}
+		update_post_meta( $post_id, self::META_SHARE_VIEWS, $views );
+	}
+
+	/**
+	 * How many times the share link has been opened.
+	 *
+	 * @return int
+	 */
+	public function get_share_view_count() {
+		$views = get_post_meta( $this->post_id, self::META_SHARE_VIEWS, true );
+		return is_array( $views ) ? count( $views ) : 0;
+	}
+
+	/**
+	 * Timestamp (MySQL datetime) the share link was last opened, or ''.
+	 *
+	 * @return string
+	 */
+	public function get_last_viewed() {
+		$views = get_post_meta( $this->post_id, self::META_SHARE_VIEWS, true );
+		if ( ! is_array( $views ) || empty( $views ) ) {
+			return '';
+		}
+		return end( $views );
+	}
+
+	/**
 	 * Get available statuses.
 	 *
 	 * @return array
@@ -338,6 +897,7 @@ class WP_IM_Invoice {
 		return array(
 			'draft'    => __( 'Draft', 'wp-invoice-manager' ),
 			'sent'     => __( 'Sent', 'wp-invoice-manager' ),
+			'partial'  => __( 'Partially Paid', 'wp-invoice-manager' ),
 			'paid'     => __( 'Paid', 'wp-invoice-manager' ),
 			'overdue'  => __( 'Overdue', 'wp-invoice-manager' ),
 			'cancelled'=> __( 'Cancelled', 'wp-invoice-manager' ),

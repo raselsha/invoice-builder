@@ -37,5 +37,9 @@ class WP_IM_Activator {
 		add_option( 'wp_im_db_version', WP_IM_VERSION );
 		add_option( 'wp_im_invoice_prefix', 'INV-' );
 		add_option( 'wp_im_next_invoice_number', 1 );
+
+		if ( ! wp_next_scheduled( 'wp_im_process_recurring_invoices' ) ) {
+			wp_schedule_event( time(), 'daily', 'wp_im_process_recurring_invoices' );
+		}
 	}
 }

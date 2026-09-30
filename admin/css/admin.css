@@ -214,6 +214,7 @@
 }
 .wim-badge-draft     { background: #f1f5f9; color: #475569; }
 .wim-badge-sent      { background: #eff6ff; color: #1d4ed8; }
+.wim-badge-partial   { background: #fffbeb; color: #92400e; }
 .wim-badge-paid      { background: #ecfdf5; color: #065f46; }
 .wim-badge-overdue   { background: #fef2f2; color: #991b1b; }
 .wim-badge-cancelled { background: #fafafa; color: #9ca3af; }
@@ -1060,3 +1061,126 @@
 
 .wim-rte-large .wim-rte-editable { min-height: 100px; }
 .wim-rte-large .wim-rte-toolbar { margin-bottom: 2px; }
+
+/* ── Payments (invoice edit screen) ──────────────────────── */
+.wim-payment-summary {
+	display: flex;
+	align-items: center;
+	gap: 24px;
+	flex-wrap: wrap;
+	padding: 14px 18px;
+	background: var(--wim-surface2);
+	border: 1.5px solid var(--wim-border);
+	border-radius: var(--wim-radius);
+	margin-bottom: 16px;
+}
+.wim-payment-summary-item { display: flex; flex-direction: column; gap: 2px; }
+.wim-payment-summary-label {
+	font-size: 11px;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: .05em;
+	color: var(--wim-muted);
+}
+.wim-payment-summary-value { font-size: 18px; font-weight: 800; }
+.wim-payment-paid    { color: var(--wim-success); }
+.wim-payment-balance { color: var(--wim-danger); }
+.wim-payment-summary #wim-record-payment-btn { margin-left: auto; }
+
+.wim-payments-table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 13px;
+}
+.wim-payments-table thead th {
+	background: var(--wim-surface2);
+	padding: 8px 10px;
+	text-align: left;
+	font-size: 11px;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: .05em;
+	color: var(--wim-muted);
+	border-bottom: 2px solid var(--wim-border);
+}
+.wim-payments-table tbody td {
+	padding: 8px 10px;
+	border-bottom: 1px solid var(--wim-border);
+	color: var(--wim-text);
+}
+.wim-payments-table tbody tr:last-child td { border-bottom: none; }
+
+/* ── Recurring invoice checkbox ───────────────────────────── */
+.wim-checkbox-label {
+	display: flex !important;
+	align-items: center;
+	gap: 8px;
+	font-size: 13px;
+	font-weight: 500;
+	text-transform: none;
+	letter-spacing: normal;
+	color: var(--wim-text);
+	cursor: pointer;
+}
+.wim-checkbox-label input[type="checkbox"] {
+	width: 16px;
+	height: 16px;
+	accent-color: var(--wim-accent);
+	cursor: pointer;
+}
+
+/* ── Discount amount + type (flat/%) ──────────────────────── */
+.wim-discount-row { display: flex; gap: 8px; }
+.wim-discount-row input[type="number"] { flex: 1; }
+.wim-discount-type { width: 90px; flex: 0 0 90px; }
+
+/* ── Bulk actions bar (invoice list) ──────────────────────── */
+.wim-bulk-bar {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	margin-bottom: 14px;
+}
+.wim-bulk-count { font-size: 12px; color: var(--wim-muted); font-weight: 600; }
+.wim-table th.col-check,
+.wim-table td.col-check { width: 32px; text-align: center; }
+.wim-table td.col-check input,
+.wim-table th.col-check input { width: 15px; height: 15px; accent-color: var(--wim-accent); cursor: pointer; }
+
+/* ── Reports: mini bar charts ─────────────────────────────── */
+.wim-chart-currency {
+	font-size: 12px;
+	font-weight: 700;
+	color: var(--wim-muted);
+	text-transform: uppercase;
+	letter-spacing: .05em;
+	margin-bottom: 10px;
+}
+.wim-chart-bars {
+	display: flex;
+	align-items: flex-end;
+	gap: 10px;
+	height: 140px;
+}
+.wim-chart-bar-col {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	height: 100%;
+}
+.wim-chart-bar-track {
+	flex: 1;
+	width: 100%;
+	display: flex;
+	align-items: flex-end;
+	justify-content: center;
+}
+.wim-chart-bar {
+	width: 60%;
+	min-width: 14px;
+	background: linear-gradient(180deg, var(--wim-accent), var(--wim-accent2));
+	border-radius: 4px 4px 0 0;
+}
+.wim-chart-bar-value { font-size: 10.5px; color: var(--wim-muted); margin-top: 6px; }
+.wim-chart-bar-label { font-size: 11px; color: var(--wim-text); font-weight: 600; margin-top: 2px; }

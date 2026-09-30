@@ -125,6 +125,7 @@ $color_themes = array(
 						<label><?php esc_html_e( 'Invoice Number Prefix', 'wp-invoice-manager' ); ?></label>
 						<input type="text" name="invoice_prefix"
 							value="<?php echo esc_attr( get_option( 'wp_im_invoice_prefix', 'INV-' ) ); ?>">
+						<p class="wim-field-hint"><?php esc_html_e( 'Use {year} for the current year, e.g. INV-{year}- → INV-2026-00001.', 'wp-invoice-manager' ); ?></p>
 					</div>
 					<div class="wim-field">
 						<label><?php esc_html_e( 'Default Currency', 'wp-invoice-manager' ); ?></label>
@@ -142,6 +143,12 @@ $color_themes = array(
 					<input type="text" name="footer_text"
 						value="<?php echo esc_attr( get_option( 'wp_im_footer_text', WP_IM_Invoice::get_default_footer_text() ) ); ?>">
 					<p class="wim-field-hint"><?php esc_html_e( 'Shown at the bottom of the printed / PDF invoice. Use {site_name} and {date} as placeholders.', 'wp-invoice-manager' ); ?></p>
+				</div>
+				<div class="wim-field">
+					<label class="wim-checkbox-label">
+						<input type="checkbox" name="reset_number_yearly" value="1" <?php checked( get_option( 'wp_im_reset_number_yearly', false ) ); ?>>
+						<?php esc_html_e( 'Reset invoice numbering to 1 every year', 'wp-invoice-manager' ); ?>
+					</label>
 				</div>
 			</div>
 
@@ -256,6 +263,60 @@ $color_themes = array(
 			</div>
 
 		</div><!-- .wim-form-wrap (branding) -->
+
+		<div class="wim-form-wrap" style="margin-top:24px">
+
+			<div class="wim-section">
+				<h3 class="wim-section-title">
+					<span class="dashicons dashicons-money-alt"></span>
+					<?php esc_html_e( 'Payment Gateway — "Pay Now" (Coming Soon)', 'wp-invoice-manager' ); ?>
+				</h3>
+				<p class="wim-field-hint">
+					<?php esc_html_e( 'These fields save your credentials for a future online-payment integration. A "Pay Now" button already appears on shared invoices with a balance due, but it currently shows a "not set up yet" page — no live payment is processed until this is fully wired up.', 'wp-invoice-manager' ); ?>
+				</p>
+
+				<div class="wim-color-pair">
+					<div class="wim-color-pair-title"><?php esc_html_e( 'bKash', 'wp-invoice-manager' ); ?></div>
+					<div class="wim-field">
+						<label class="wim-checkbox-label">
+							<input type="checkbox" name="bkash_enabled" value="1" <?php checked( get_option( 'wp_im_bkash_enabled', false ) ); ?>>
+							<?php esc_html_e( 'Enable bKash (once configured)', 'wp-invoice-manager' ); ?>
+						</label>
+					</div>
+					<div class="wim-form-grid">
+						<div class="wim-field">
+							<label><?php esc_html_e( 'App Key', 'wp-invoice-manager' ); ?></label>
+							<input type="text" name="bkash_api_key" autocomplete="off" value="<?php echo esc_attr( get_option( 'wp_im_bkash_api_key', '' ) ); ?>">
+						</div>
+						<div class="wim-field">
+							<label><?php esc_html_e( 'App Secret', 'wp-invoice-manager' ); ?></label>
+							<input type="password" name="bkash_api_secret" autocomplete="off" value="<?php echo esc_attr( get_option( 'wp_im_bkash_api_secret', '' ) ); ?>">
+						</div>
+					</div>
+				</div>
+
+				<div class="wim-color-pair">
+					<div class="wim-color-pair-title"><?php esc_html_e( 'SSLCommerz', 'wp-invoice-manager' ); ?></div>
+					<div class="wim-field">
+						<label class="wim-checkbox-label">
+							<input type="checkbox" name="sslcommerz_enabled" value="1" <?php checked( get_option( 'wp_im_sslcommerz_enabled', false ) ); ?>>
+							<?php esc_html_e( 'Enable SSLCommerz (once configured)', 'wp-invoice-manager' ); ?>
+						</label>
+					</div>
+					<div class="wim-form-grid">
+						<div class="wim-field">
+							<label><?php esc_html_e( 'Store ID', 'wp-invoice-manager' ); ?></label>
+							<input type="text" name="sslcommerz_store_id" autocomplete="off" value="<?php echo esc_attr( get_option( 'wp_im_sslcommerz_store_id', '' ) ); ?>">
+						</div>
+						<div class="wim-field">
+							<label><?php esc_html_e( 'Store Password', 'wp-invoice-manager' ); ?></label>
+							<input type="password" name="sslcommerz_store_password" autocomplete="off" value="<?php echo esc_attr( get_option( 'wp_im_sslcommerz_store_password', '' ) ); ?>">
+						</div>
+					</div>
+				</div>
+			</div>
+
+		</div><!-- .wim-form-wrap (payment gateway) -->
 
 		<div class="wim-form-actions">
 			<button type="submit" class="wim-btn wim-btn-primary">

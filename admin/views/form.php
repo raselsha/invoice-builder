@@ -23,10 +23,11 @@ $company_email= get_option( 'wp_im_company_email', get_option('admin_email') );
 $company_phone= get_option( 'wp_im_company_phone', '' );
 $company_addr = get_option( 'wp_im_company_address', '' );
 
-$items = $is_edit ? $invoice['items'] : array();
+$items  = $is_edit ? $invoice['items'] : array();
 if ( empty( $items ) ) {
 	$items = array( array( 'description' => '', 'quantity' => 1, 'unit_price' => 0, 'tax_rate' => $def_tax ) );
 }
+$symbol = WP_IM_Invoice::currency_symbol( $is_edit ? $invoice['currency'] : $def_currency );
 
 // Client field defaults: an existing invoice keeps its own values; a brand-new
 // invoice can be prefilled from a customer (search-select, or a "New Invoice"
@@ -36,6 +37,18 @@ $client_name_val   = $is_edit ? $invoice['client_name']    : ( $prefill_customer
 $client_email_val  = $is_edit ? $invoice['client_email']   : ( $prefill_customer['email']   ?? '' );
 $client_phone_val  = $is_edit ? $invoice['client_phone']   : ( $prefill_customer['phone']   ?? '' );
 $client_address_val= $is_edit ? $invoice['client_address'] : ( $prefill_customer['address'] ?? '' );
+
+// Recurring invoice settings — only meaningful for a saved invoice that
+// isn't itself already a child generated from a template.
+$recurring_frequencies  = WP_IM_Invoice::get_recurring_frequencies();
+$recurring_parent_id    = $is_edit ? absint( $invoice['recurring_parent'] ?? 0 ) : 0;
+$is_recurring            = $is_edit && ! empty( $invoice['recurring_frequency'] );
+$recurring_frequency_val = $is_edit ? ( $invoice['recurring_frequency'] ?? 'monthly' ) : 'monthly';
+$recurring_next_date_val = $is_edit && $invoice['recurring_next_date'] ? $invoice['recurring_next_date'] : date( 'Y-m-d', strtotime( '+1 month' ) );
+$recurring_end_date_val  = $is_edit ? ( $invoice['recurring_end_date'] ?? '' ) : '';
+if ( '' === $recurring_frequency_val ) {
+	$recurring_frequency_val = 'monthly';
+}
 
 // Terms & Conditions checklist – a brand-new invoice starts with everything checked;
 // an existing invoice keeps exactly what was saved for it (even if that's none).
@@ -62,6 +75,9 @@ $selected_terms = $is_edit
 			'updated'            => __( '✓ Invoice updated successfully.', 'wp-invoice-manager' ),
 			'sent'               => __( '✓ Invoice sent to client.', 'wp-invoice-manager' ),
 			'share_regenerated'  => __( '✓ Share link regenerated — the old link no longer works.', 'wp-invoice-manager' ),
+			'payment_recorded'   => __( '✓ Payment recorded.', 'wp-invoice-manager' ),
+			'payment_deleted'    => __( '✓ Payment removed.', 'wp-invoice-manager' ),
+			'duplicated'         => __( '✓ Invoice duplicated — this is the new copy.', 'wp-invoice-manager' ),
 		);
 	?>
 		<div class="wim-notice wim-notice-success">
@@ -107,12 +123,60 @@ $selected_terms = $is_edit
 						<?php wim_render_select( 'currency', $currencies, $invoice ? ( $invoice['currency'] ?? $def_currency ) : $def_currency ); ?>
 					</div>
 					<div class="wim-field">
-						<label><?php esc_html_e( 'Discount (flat)', 'wp-invoice-manager' ); ?></label>
-						<input type="number" name="discount" id="wim-discount"
-							value="<?php echo wim_val( $invoice, 'discount', '0' ); ?>"
-							min="0" step="0.01">
+						<label><?php esc_html_e( 'Discount', 'wp-invoice-manager' ); ?></label>
+						<div class="wim-discount-row">
+							<input type="number" name="discount" id="wim-discount"
+								value="<?php echo wim_val( $invoice, 'discount', '0' ); ?>"
+								min="0" step="0.01">
+							<div class="wim-discount-type">
+								<?php wim_render_select( 'discount_type', array( 'flat' => __( 'Flat', 'wp-invoice-manager' ), 'percent' => '%' ), $is_edit ? ( $invoice['discount_type'] ?? 'flat' ) : 'flat' ); ?>
+							</div>
+						</div>
 					</div>
 				</div>
+			</div>
+
+			<!-- ── Recurring ── -->
+			<div class="wim-section">
+				<h3 class="wim-section-title">
+					<span class="dashicons dashicons-update"></span>
+					<?php esc_html_e( 'Recurring', 'wp-invoice-manager' ); ?>
+				</h3>
+				<?php if ( $recurring_parent_id ) :
+					$parent_invoice = WP_IM_Invoice::get( $recurring_parent_id );
+				?>
+				<p class="wim-field-hint">
+					<?php
+					printf(
+						/* translators: %s: parent invoice number */
+						esc_html__( 'Auto-generated from recurring invoice %s.', 'wp-invoice-manager' ),
+						$parent_invoice ? esc_html( $parent_invoice['number'] ) : '#' . (int) $recurring_parent_id
+					);
+					?>
+				</p>
+				<?php else : ?>
+				<div class="wim-field">
+					<label class="wim-checkbox-label">
+						<input type="checkbox" name="is_recurring" id="wim-is-recurring" value="1" <?php checked( $is_recurring ); ?>>
+						<?php esc_html_e( 'Make this a recurring invoice', 'wp-invoice-manager' ); ?>
+					</label>
+				</div>
+				<div id="wim-recurring-fields" class="wim-form-grid-3"<?php echo $is_recurring ? '' : ' style="display:none"'; ?>>
+					<div class="wim-field">
+						<label><?php esc_html_e( 'Frequency', 'wp-invoice-manager' ); ?></label>
+						<?php wim_render_select( 'recurring_frequency', $recurring_frequencies, $recurring_frequency_val ); ?>
+					</div>
+					<div class="wim-field">
+						<label><?php esc_html_e( 'Next Invoice Date', 'wp-invoice-manager' ); ?></label>
+						<input type="date" name="recurring_next_date" value="<?php echo esc_attr( $recurring_next_date_val ); ?>">
+					</div>
+					<div class="wim-field">
+						<label><?php esc_html_e( 'End Date (optional)', 'wp-invoice-manager' ); ?></label>
+						<input type="date" name="recurring_end_date" value="<?php echo esc_attr( $recurring_end_date_val ); ?>">
+					</div>
+				</div>
+				<p class="wim-field-hint"><?php esc_html_e( 'A new draft invoice (copying the client, items, and terms below) is generated automatically on the next invoice date, then the date advances by the chosen frequency.', 'wp-invoice-manager' ); ?></p>
+				<?php endif; ?>
 			</div>
 
 			<!-- ── Biller & Client ── -->
@@ -284,6 +348,76 @@ $selected_terms = $is_edit
 				</div>
 			</div>
 
+			<?php if ( $is_edit ) :
+				$payment_methods = WP_IM_Invoice::get_payment_methods();
+				$paid_amt        = $invoice['totals']['paid'];
+				$balance_amt     = $invoice['totals']['balance'];
+			?>
+			<!-- ── Payments ── -->
+			<div class="wim-section" style="margin-top:28px">
+				<h3 class="wim-section-title">
+					<span class="dashicons dashicons-money-alt"></span>
+					<?php esc_html_e( 'Payments', 'wp-invoice-manager' ); ?>
+				</h3>
+
+				<div class="wim-payment-summary">
+					<div class="wim-payment-summary-item">
+						<span class="wim-payment-summary-label"><?php esc_html_e( 'Paid', 'wp-invoice-manager' ); ?></span>
+						<span class="wim-payment-summary-value wim-payment-paid"><?php echo esc_html( $symbol . number_format( $paid_amt, 2 ) ); ?></span>
+					</div>
+					<div class="wim-payment-summary-item">
+						<span class="wim-payment-summary-label"><?php esc_html_e( 'Balance Due', 'wp-invoice-manager' ); ?></span>
+						<span class="wim-payment-summary-value <?php echo $balance_amt > 0 ? 'wim-payment-balance' : 'wim-payment-paid'; ?>"><?php echo esc_html( $symbol . number_format( $balance_amt, 2 ) ); ?></span>
+					</div>
+					<button type="button" id="wim-record-payment-btn" class="wim-btn wim-btn-primary">
+						<span class="dashicons dashicons-plus-alt2" style="font-size:14px;width:14px;height:14px;margin-top:3px"></span>
+						<?php esc_html_e( 'Record Payment', 'wp-invoice-manager' ); ?>
+					</button>
+				</div>
+
+				<?php if ( ! empty( $invoice['payments'] ) ) : ?>
+				<table class="wim-payments-table">
+					<thead>
+						<tr>
+							<th><?php esc_html_e( 'Date', 'wp-invoice-manager' ); ?></th>
+							<th><?php esc_html_e( 'Amount', 'wp-invoice-manager' ); ?></th>
+							<th><?php esc_html_e( 'Method', 'wp-invoice-manager' ); ?></th>
+							<th><?php esc_html_e( 'Note', 'wp-invoice-manager' ); ?></th>
+							<th></th>
+						</tr>
+					</thead>
+					<tbody>
+						<?php foreach ( $invoice['payments'] as $payment ) :
+							$delete_payment_url = wp_nonce_url(
+								add_query_arg( array(
+									'action'     => 'wp_im_delete_payment',
+									'invoice_id' => $post_id,
+									'payment_id' => $payment['id'],
+								), admin_url( 'admin-post.php' ) ),
+								'wp_im_delete_payment_' . $payment['id'],
+								'wp_im_delete_payment_nonce'
+							);
+						?>
+						<tr>
+							<td><?php echo esc_html( $payment['date'] ); ?></td>
+							<td><strong><?php echo esc_html( $symbol . number_format( floatval( $payment['amount'] ), 2 ) ); ?></strong></td>
+							<td><?php echo esc_html( $payment_methods[ $payment['method'] ] ?? $payment['method'] ); ?></td>
+							<td><?php echo esc_html( $payment['note'] ); ?></td>
+							<td>
+								<a href="<?php echo esc_url( $delete_payment_url ); ?>" class="wim-remove-row wim-delete-link" title="<?php esc_attr_e( 'Delete', 'wp-invoice-manager' ); ?>">
+									<span class="dashicons dashicons-trash"></span>
+								</a>
+							</td>
+						</tr>
+						<?php endforeach; ?>
+					</tbody>
+				</table>
+				<?php else : ?>
+				<p class="wim-field-hint"><?php esc_html_e( 'No payments recorded yet.', 'wp-invoice-manager' ); ?></p>
+				<?php endif; ?>
+			</div>
+			<?php endif; ?>
+
 			<!-- ── Notes ── -->
 			<div class="wim-section" style="margin-top:28px">
 				<h3 class="wim-section-title">
@@ -347,6 +481,21 @@ $selected_terms = $is_edit
 						<?php esc_html_e( 'Print / PDF', 'wp-invoice-manager' ); ?>
 					</a>
 
+					<?php
+					$duplicate_url = wp_nonce_url(
+						add_query_arg( array(
+							'action'     => 'wp_im_duplicate_invoice',
+							'invoice_id' => $post_id,
+						), admin_url( 'admin-post.php' ) ),
+						'wp_im_duplicate_' . $post_id,
+						'wp_im_duplicate_nonce'
+					);
+					?>
+					<a href="<?php echo esc_url( $duplicate_url ); ?>" class="wim-btn wim-btn-secondary">
+						<span class="dashicons dashicons-admin-page" style="font-size:14px;width:14px;height:14px;margin-top:3px"></span>
+						<?php esc_html_e( 'Duplicate', 'wp-invoice-manager' ); ?>
+					</a>
+
 					<?php if ( ! empty( $share_url ) ) :
 						$regen_url = wp_nonce_url(
 							add_query_arg( array(
@@ -377,6 +526,21 @@ $selected_terms = $is_edit
 							</div>
 							<a href="<?php echo esc_url( $share_url ); ?>" target="_blank" rel="noopener" class="wim-share-link-text"><?php echo esc_html( $share_url ); ?></a>
 							<p class="wim-share-howto"><?php esc_html_e( '1) Click Copy — 2) Paste it in WhatsApp, SMS, or email and send it to your client. They can open it and view/print the invoice without logging in.', 'wp-invoice-manager' ); ?></p>
+							<p class="wim-share-howto">
+								<?php if ( ! empty( $invoice['share_view_count'] ) ) : ?>
+									<span class="dashicons dashicons-visibility" style="font-size:13px;width:13px;height:13px;vertical-align:-2px"></span>
+									<?php
+									printf(
+										/* translators: 1: number of times opened, 2: last-viewed date/time */
+										esc_html( _n( 'Viewed %1$d time — last on %2$s', 'Viewed %1$d times — last on %2$s', $invoice['share_view_count'], 'wp-invoice-manager' ) ),
+										(int) $invoice['share_view_count'],
+										esc_html( mysql2date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $invoice['share_last_viewed'] ) )
+									);
+									?>
+								<?php else : ?>
+									<?php esc_html_e( 'Not viewed by the client yet.', 'wp-invoice-manager' ); ?>
+								<?php endif; ?>
+							</p>
 							<a href="<?php echo esc_url( $regen_url ); ?>" class="wim-share-regenerate"
 								onclick="return confirm('<?php echo esc_js( __( 'This will invalidate the current link — anyone using the old one will lose access. Continue?', 'wp-invoice-manager' ) ); ?>');">
 								<?php esc_html_e( 'Regenerate link', 'wp-invoice-manager' ); ?>
@@ -403,5 +567,52 @@ $selected_terms = $is_edit
 
 		</div><!-- .wim-form-wrap -->
 	</form>
+
+	<?php if ( $is_edit ) : ?>
+	<!-- Record Payment modal -->
+	<div class="wim-modal-overlay" id="wim-payment-modal-overlay">
+		<div class="wim-modal" role="dialog" aria-modal="true" aria-labelledby="wim-payment-modal-title">
+			<div class="wim-modal-header">
+				<h2 id="wim-payment-modal-title"><?php esc_html_e( 'Record Payment', 'wp-invoice-manager' ); ?></h2>
+				<button type="button" class="wim-modal-close" id="wim-payment-modal-close" aria-label="<?php esc_attr_e( 'Close', 'wp-invoice-manager' ); ?>">
+					<span class="dashicons dashicons-no-alt"></span>
+				</button>
+			</div>
+			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="wim-modal-body">
+				<?php wp_nonce_field( 'wp_im_payment_action', 'wp_im_payment_nonce' ); ?>
+				<input type="hidden" name="action" value="wp_im_record_payment">
+				<input type="hidden" name="post_id" value="<?php echo esc_attr( $post_id ); ?>">
+
+				<div class="wim-form-grid">
+					<div class="wim-field">
+						<label><?php esc_html_e( 'Amount', 'wp-invoice-manager' ); ?></label>
+						<input type="number" name="amount" min="0.01" step="0.01" required
+							value="<?php echo esc_attr( $balance_amt > 0 ? number_format( $balance_amt, 2, '.', '' ) : '' ); ?>">
+					</div>
+					<div class="wim-field">
+						<label><?php esc_html_e( 'Date', 'wp-invoice-manager' ); ?></label>
+						<input type="date" name="date" value="<?php echo esc_attr( current_time( 'Y-m-d' ) ); ?>" required>
+					</div>
+				</div>
+				<div class="wim-field">
+					<label><?php esc_html_e( 'Method', 'wp-invoice-manager' ); ?></label>
+					<?php wim_render_select( 'method', $payment_methods, 'bank' ); ?>
+				</div>
+				<div class="wim-field">
+					<label><?php esc_html_e( 'Note', 'wp-invoice-manager' ); ?></label>
+					<input type="text" name="note" placeholder="<?php esc_attr_e( 'Reference / transaction ID, etc. (optional)', 'wp-invoice-manager' ); ?>">
+				</div>
+
+				<div class="wim-modal-footer">
+					<button type="button" class="wim-btn wim-btn-secondary wim-modal-cancel"><?php esc_html_e( 'Cancel', 'wp-invoice-manager' ); ?></button>
+					<button type="submit" class="wim-btn wim-btn-primary">
+						<span class="dashicons dashicons-saved" style="font-size:14px;width:14px;height:14px;margin-top:3px"></span>
+						<?php esc_html_e( 'Save Payment', 'wp-invoice-manager' ); ?>
+					</button>
+				</div>
+			</form>
+		</div>
+	</div>
+	<?php endif; ?>
 
 </div><!-- .wim-wrap -->

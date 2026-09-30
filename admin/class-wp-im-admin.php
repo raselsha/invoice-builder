@@ -40,8 +40,78 @@ class WP_IM_Admin {
 		add_action( 'admin_post_wp_im_delete_customer', array( $this, 'handle_delete_customer' ) );
 		add_action( 'wp_ajax_wp_im_search_customers',   array( $this, 'ajax_search_customers' ) );
 
+		// Payments
+		add_action( 'admin_post_wp_im_record_payment', array( $this, 'handle_record_payment' ) );
+		add_action( 'admin_post_wp_im_delete_payment', array( $this, 'handle_delete_payment' ) );
+
 		// Settings
 		add_action( 'admin_post_wp_im_save_settings', array( $this, 'handle_save_settings' ) );
+
+		// Duplicate / bulk actions / export
+		add_action( 'admin_post_wp_im_duplicate_invoice', array( $this, 'handle_duplicate_invoice' ) );
+		add_action( 'admin_post_wp_im_bulk_action',       array( $this, 'handle_bulk_action' ) );
+		add_action( 'admin_post_wp_im_export_csv',        array( $this, 'handle_export_csv' ) );
+
+		// Pay Now — scaffold only, no live gateway calls (see handle_pay_now()).
+		add_action( 'admin_post_wp_im_pay_now',        array( $this, 'handle_pay_now' ) );
+		add_action( 'admin_post_nopriv_wp_im_pay_now', array( $this, 'handle_pay_now' ) );
+
+		// Recurring invoices + daily maintenance (overdue detection, reminders)
+		add_action( 'wp_im_process_recurring_invoices', array( $this, 'process_recurring_invoices' ) );
+		add_action( 'wp_im_process_recurring_invoices', array( $this, 'process_daily_maintenance' ) );
+
+		// Self-healing: make sure the daily cron event stays scheduled even
+		// if the plugin was updated without a deactivate/reactivate cycle.
+		if ( ! wp_next_scheduled( 'wp_im_process_recurring_invoices' ) ) {
+			wp_schedule_event( time(), 'daily', 'wp_im_process_recurring_invoices' );
+		}
+	}
+
+	/**
+	 * Cron callback: generate the next invoice for every due recurring template.
+	 */
+	public function process_recurring_invoices() {
+		foreach ( WP_IM_Invoice::get_due_recurring_templates() as $template_id ) {
+			WP_IM_Invoice::generate_from_recurring( $template_id );
+		}
+	}
+
+	/**
+	 * Cron callback: flip sent/partial invoices past their due date to
+	 * "overdue", then email a reminder for any overdue invoice that hasn't
+	 * had one in the last 7 days.
+	 */
+	public function process_daily_maintenance() {
+		foreach ( WP_IM_Invoice::get_newly_overdue_ids() as $post_id ) {
+			update_post_meta( $post_id, WP_IM_Invoice::META_STATUS, 'overdue' );
+		}
+
+		foreach ( WP_IM_Invoice::get_overdue_for_reminder() as $post_id ) {
+			$invoice = WP_IM_Invoice::get( $post_id );
+			if ( ! $invoice || empty( $invoice['client_email'] ) ) {
+				continue;
+			}
+
+			$subject = sprintf(
+				/* translators: %s: Invoice number */
+				__( 'Reminder: Invoice %s is overdue', 'wp-invoice-manager' ),
+				$invoice['number']
+			);
+			$message = sprintf(
+				/* translators: %1$s: client name, %2$s: invoice number, %3$s: balance due, %4$s: due date */
+				__(
+					"Dear %1\$s,\n\nThis is a friendly reminder that invoice %2\$s for %3\$s was due on %4\$s and is still unpaid.\n\nPlease arrange payment at your earliest convenience.\n\nThank you.",
+					'wp-invoice-manager'
+				),
+				$invoice['client_name'],
+				$invoice['number'],
+				WP_IM_Invoice::currency_symbol( $invoice['currency'] ) . number_format( $invoice['totals']['balance'], 2 ),
+				$invoice['due_date']
+			);
+
+			wp_mail( $invoice['client_email'], $subject, $message );
+			update_post_meta( $post_id, WP_IM_Invoice::META_LAST_REMINDER_SENT, current_time( 'Y-m-d' ) );
+		}
 	}
 
 	// ── Menu ─────────────────────────────────────────────────────────────────
@@ -86,6 +156,15 @@ class WP_IM_Admin {
 
 		add_submenu_page(
 			'wp-invoice-manager',
+			__( 'Reports', 'wp-invoice-manager' ),
+			__( 'Reports', 'wp-invoice-manager' ),
+			'manage_options',
+			'wp-im-reports',
+			array( $this, 'page_reports' )
+		);
+
+		add_submenu_page(
+			'wp-invoice-manager',
 			__( 'Settings', 'wp-invoice-manager' ),
 			__( 'Settings', 'wp-invoice-manager' ),
 			'manage_options',
@@ -102,13 +181,14 @@ class WP_IM_Admin {
 			'invoices_page_wp-im-new-invoice',
 			'invoices_page_wp-im-settings',
 			'invoices_page_wp-im-customers',
+			'invoices_page_wp-im-reports',
 		);
 
 		if ( ! in_array( $hook, $our_pages, true ) && ! isset( $_GET['page'] ) ) {
 			return;
 		}
 
-		$allowed_get_pages = array( 'wp-invoice-manager', 'wp-im-new-invoice', 'wp-im-settings', 'wp-im-customers' );
+		$allowed_get_pages = array( 'wp-invoice-manager', 'wp-im-new-invoice', 'wp-im-settings', 'wp-im-customers', 'wp-im-reports' );
 		if ( ! in_array( $_GET['page'] ?? '', $allowed_get_pages, true ) && ! in_array( $hook, $our_pages, true ) ) {
 			return;
 		}
@@ -201,6 +281,14 @@ class WP_IM_Admin {
 		include WP_IM_PLUGIN_DIR . 'admin/views/settings.php';
 	}
 
+	public function page_reports() {
+		$currency_stats  = WP_IM_Invoice::get_stats_by_currency();
+		$monthly_revenue = WP_IM_Invoice::get_monthly_revenue( 6 );
+		$top_clients     = WP_IM_Invoice::get_top_clients( 5 );
+		$aging           = WP_IM_Invoice::get_overdue_aging();
+		include WP_IM_PLUGIN_DIR . 'admin/views/reports.php';
+	}
+
 	public function page_customers() {
 		$customers = WP_IM_Customer::get_all();
 		include WP_IM_PLUGIN_DIR . 'admin/views/customers-list.php';
@@ -271,25 +359,27 @@ class WP_IM_Admin {
 		// Mark as sent
 		update_post_meta( $post_id, WP_IM_Invoice::META_STATUS, 'sent' );
 
+		$token     = WP_IM_Invoice::get_or_create_share_token( $post_id );
+		$share_url = add_query_arg( array(
+			'action'     => 'wp_im_view_shared_invoice',
+			'invoice_id' => $post_id,
+			'token'      => $token,
+		), admin_url( 'admin-post.php' ) );
+
 		$subject = sprintf(
 			/* translators: %s: Invoice number */
 			__( 'Invoice %s', 'wp-invoice-manager' ),
 			$invoice['number']
 		);
 
-		$message = sprintf(
-			/* translators: %1$s: client name, %2$s: invoice number, %3$s: total, %4$s: due date */
-			__(
-				"Dear %1\$s,\n\nPlease find your invoice %2\$s for a total of %3\$s.\nDue date: %4\$s.\n\nThank you for your business.",
-				'wp-invoice-manager'
-			),
-			$invoice['client_name'],
-			$invoice['number'],
-			WP_IM_Invoice::currency_symbol( $invoice['currency'] ) . number_format( $invoice['totals']['total'], 2 ),
-			$invoice['due_date']
-		);
+		// No PDF library (e.g. Dompdf) is bundled with this plugin, so instead
+		// of a real PDF attachment, this sends a branded HTML email with the
+		// invoice summary and a link to view/print/pay it online.
+		$message = $this->build_send_invoice_email_html( $invoice, $share_url );
 
+		add_filter( 'wp_mail_content_type', array( $this, 'set_html_mail_content_type' ) );
 		wp_mail( $invoice['client_email'], $subject, $message );
+		remove_filter( 'wp_mail_content_type', array( $this, 'set_html_mail_content_type' ) );
 
 		wp_redirect( add_query_arg( array(
 			'page'       => 'wp-im-new-invoice',
@@ -297,6 +387,70 @@ class WP_IM_Admin {
 			'message'    => 'sent',
 		), admin_url( 'admin.php' ) ) );
 		exit;
+	}
+
+	/**
+	 * Force text/html just for the "Send to Client" email above — never left
+	 * globally attached, so it can't affect any other plugin's plain-text mail.
+	 */
+	public function set_html_mail_content_type() {
+		return 'text/html';
+	}
+
+	/**
+	 * Branded HTML email body for "Send to Client" — summary + a button
+	 * linking to the same share view used by the "Share" link, so the client
+	 * can view, print, and (once configured) pay online. No attachment.
+	 *
+	 * @param array  $invoice
+	 * @param string $share_url
+	 * @return string
+	 */
+	private function build_send_invoice_email_html( array $invoice, $share_url ) {
+		$symbol = WP_IM_Invoice::currency_symbol( $invoice['currency'] );
+		$accent = get_option( 'wp_im_primary_color', '#e94560' );
+
+		ob_start();
+		?>
+		<div style="font-family:'Segoe UI',Arial,sans-serif;background:#f8f9fc;padding:32px 16px">
+			<div style="max-width:520px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.08)">
+				<div style="background:#1a1a2e;padding:28px 32px;color:#fff">
+					<div style="font-size:18px;font-weight:700"><?php echo esc_html( $invoice['biller_name'] ); ?></div>
+				</div>
+				<div style="padding:32px">
+					<p style="margin:0 0 16px;color:#1e293b;font-size:14px">
+						<?php echo esc_html( sprintf( __( 'Dear %s,', 'wp-invoice-manager' ), $invoice['client_name'] ) ); ?>
+					</p>
+					<p style="margin:0 0 24px;color:#475569;font-size:13.5px;line-height:1.7">
+						<?php esc_html_e( 'Please find your invoice summary below. You can view, print, or pay it online using the button below.', 'wp-invoice-manager' ); ?>
+					</p>
+					<table style="width:100%;border-collapse:collapse;margin-bottom:24px">
+						<tr>
+							<td style="padding:8px 0;color:#64748b;font-size:13px"><?php esc_html_e( 'Invoice #', 'wp-invoice-manager' ); ?></td>
+							<td style="padding:8px 0;color:#1e293b;font-size:13px;text-align:right;font-weight:700"><?php echo esc_html( $invoice['number'] ); ?></td>
+						</tr>
+						<tr>
+							<td style="padding:8px 0;color:#64748b;font-size:13px;border-top:1px solid #f1f5f9"><?php esc_html_e( 'Total', 'wp-invoice-manager' ); ?></td>
+							<td style="padding:8px 0;color:#1e293b;font-size:13px;text-align:right;border-top:1px solid #f1f5f9"><?php echo esc_html( $symbol . number_format( $invoice['totals']['total'], 2 ) ); ?></td>
+						</tr>
+						<tr>
+							<td style="padding:8px 0;color:#64748b;font-size:13px;border-top:1px solid #f1f5f9"><?php esc_html_e( 'Due Date', 'wp-invoice-manager' ); ?></td>
+							<td style="padding:8px 0;color:#1e293b;font-size:13px;text-align:right;border-top:1px solid #f1f5f9"><?php echo esc_html( $invoice['due_date'] ? $invoice['due_date'] : '—' ); ?></td>
+						</tr>
+					</table>
+					<div style="text-align:center;margin-bottom:8px">
+						<a href="<?php echo esc_url( $share_url ); ?>" style="display:inline-block;background:<?php echo esc_attr( $accent ); ?>;color:#fff;padding:13px 32px;border-radius:6px;font-size:14px;font-weight:700;text-decoration:none">
+							<?php esc_html_e( 'View, Print & Pay Invoice', 'wp-invoice-manager' ); ?>
+						</a>
+					</div>
+					<p style="text-align:center;margin:16px 0 0;color:#94a3b8;font-size:11.5px">
+						<?php esc_html_e( 'Thank you for your business.', 'wp-invoice-manager' ); ?>
+					</p>
+				</div>
+			</div>
+		</div>
+		<?php
+		return ob_get_clean();
 	}
 
 	public function handle_print_invoice() {
@@ -331,7 +485,9 @@ class WP_IM_Admin {
 			);
 		}
 
-		$generator = new WP_IM_PDF_Generator( $invoice );
+		WP_IM_Invoice::record_share_view( $post_id );
+
+		$generator = new WP_IM_PDF_Generator( $invoice, true );
 		$generator->render_html();
 	}
 
@@ -355,6 +511,7 @@ class WP_IM_Admin {
 		$this->check_capability();
 
 		update_option( 'wp_im_invoice_prefix', sanitize_text_field( $_POST['invoice_prefix'] ?? 'INV-' ) );
+		update_option( 'wp_im_reset_number_yearly', ! empty( $_POST['reset_number_yearly'] ) ? 1 : 0 );
 		update_option( 'wp_im_company_name',   sanitize_text_field( $_POST['company_name'] ?? '' ) );
 		update_option( 'wp_im_company_email',  sanitize_email( $_POST['company_email'] ?? '' ) );
 		update_option( 'wp_im_company_phone',  sanitize_text_field( $_POST['company_phone'] ?? '' ) );
@@ -374,6 +531,16 @@ class WP_IM_Admin {
 		update_option( 'wp_im_date_color',    $this->sanitize_hex_color( $_POST['date_color'] ?? '', '#0f3460' ) );
 		update_option( 'wp_im_header_text_color', $this->sanitize_hex_color( $_POST['header_text_color'] ?? '', '#ffffff' ) );
 		update_option( 'wp_im_date_text_color',   $this->sanitize_hex_color( $_POST['date_text_color'] ?? '', '#ffffff' ) );
+
+		// Payment gateway credentials — scaffold only, stored for a future
+		// real bKash / SSLCommerz integration. No live API calls are made
+		// with these values yet (see handle_pay_now()).
+		update_option( 'wp_im_bkash_enabled',          ! empty( $_POST['bkash_enabled'] ) ? 1 : 0 );
+		update_option( 'wp_im_bkash_api_key',          sanitize_text_field( $_POST['bkash_api_key'] ?? '' ) );
+		update_option( 'wp_im_bkash_api_secret',       sanitize_text_field( $_POST['bkash_api_secret'] ?? '' ) );
+		update_option( 'wp_im_sslcommerz_enabled',         ! empty( $_POST['sslcommerz_enabled'] ) ? 1 : 0 );
+		update_option( 'wp_im_sslcommerz_store_id',        sanitize_text_field( $_POST['sslcommerz_store_id'] ?? '' ) );
+		update_option( 'wp_im_sslcommerz_store_password',  sanitize_text_field( $_POST['sslcommerz_store_password'] ?? '' ) );
 
 		wp_redirect( add_query_arg( array(
 			'page'    => 'wp-im-settings',
@@ -423,6 +590,154 @@ class WP_IM_Admin {
 			'page'    => 'wp-im-customers',
 			'message' => 'deleted',
 		), admin_url( 'admin.php' ) ) );
+		exit;
+	}
+
+	// ── Payments ─────────────────────────────────────────────────────────────
+
+	public function handle_record_payment() {
+		$this->verify_nonce( 'wp_im_payment_action', 'wp_im_payment_nonce' );
+		$this->check_capability();
+
+		$post_id = absint( $_POST['post_id'] ?? 0 );
+
+		WP_IM_Invoice::add_payment( $post_id, array(
+			'amount' => $_POST['amount'] ?? 0,
+			'date'   => $_POST['date'] ?? '',
+			'method' => $_POST['method'] ?? '',
+			'note'   => $_POST['note'] ?? '',
+		) );
+
+		wp_redirect( add_query_arg( array(
+			'page'       => 'wp-im-new-invoice',
+			'invoice_id' => $post_id,
+			'message'    => 'payment_recorded',
+		), admin_url( 'admin.php' ) ) );
+		exit;
+	}
+
+	public function handle_delete_payment() {
+		$post_id    = absint( $_GET['invoice_id'] ?? 0 );
+		$payment_id = sanitize_text_field( $_GET['payment_id'] ?? '' );
+
+		$this->verify_nonce( 'wp_im_delete_payment_' . $payment_id, 'wp_im_delete_payment_nonce' );
+		$this->check_capability();
+
+		WP_IM_Invoice::delete_payment( $post_id, $payment_id );
+
+		wp_redirect( add_query_arg( array(
+			'page'       => 'wp-im-new-invoice',
+			'invoice_id' => $post_id,
+			'message'    => 'payment_deleted',
+		), admin_url( 'admin.php' ) ) );
+		exit;
+	}
+
+	// ── Duplicate / bulk actions / export / pay now ─────────────────────────
+
+	public function handle_duplicate_invoice() {
+		$post_id = absint( $_GET['invoice_id'] ?? 0 );
+		$this->verify_nonce( 'wp_im_duplicate_' . $post_id, 'wp_im_duplicate_nonce' );
+		$this->check_capability();
+
+		$new_id = WP_IM_Invoice::duplicate( $post_id );
+
+		if ( ! $new_id ) {
+			wp_die( esc_html__( 'Could not duplicate this invoice.', 'wp-invoice-manager' ) );
+		}
+
+		wp_redirect( add_query_arg( array(
+			'page'       => 'wp-im-new-invoice',
+			'invoice_id' => $new_id,
+			'message'    => 'duplicated',
+		), admin_url( 'admin.php' ) ) );
+		exit;
+	}
+
+	public function handle_bulk_action() {
+		$this->verify_nonce( 'wp_im_bulk_action', 'wp_im_bulk_nonce' );
+		$this->check_capability();
+
+		$bulk_action = sanitize_key( $_POST['bulk_action'] ?? '' );
+		$ids         = array_filter( array_map( 'absint', (array) ( $_POST['invoice_ids'] ?? array() ) ) );
+		$statuses    = array_keys( WP_IM_Invoice::get_statuses() );
+
+		if ( $ids && $bulk_action ) {
+			if ( 'delete' === $bulk_action ) {
+				foreach ( $ids as $id ) {
+					WP_IM_Invoice::delete( $id );
+				}
+			} elseif ( in_array( $bulk_action, $statuses, true ) ) {
+				foreach ( $ids as $id ) {
+					update_post_meta( $id, WP_IM_Invoice::META_STATUS, $bulk_action );
+				}
+			}
+		}
+
+		wp_redirect( add_query_arg( array(
+			'page'    => 'wp-invoice-manager',
+			'message' => 'bulk_done',
+		), admin_url( 'admin.php' ) ) );
+		exit;
+	}
+
+	public function handle_export_csv() {
+		check_admin_referer( 'wp_im_export_csv', 'wp_im_export_nonce' );
+		$this->check_capability();
+
+		$invoices = WP_IM_Invoice::get_all();
+		$statuses = WP_IM_Invoice::get_statuses();
+
+		nocache_headers();
+		header( 'Content-Type: text/csv; charset=UTF-8' );
+		header( 'Content-Disposition: attachment; filename="invoices-' . gmdate( 'Y-m-d' ) . '.csv"' );
+
+		$out = fopen( 'php://output', 'w' );
+		fputcsv( $out, array( 'Invoice #', 'Client', 'Email', 'Invoice Date', 'Due Date', 'Status', 'Currency', 'Subtotal', 'Tax', 'Discount', 'Total', 'Paid', 'Balance' ) );
+
+		foreach ( $invoices as $post ) {
+			$inv = WP_IM_Invoice::get( $post->ID );
+			fputcsv( $out, array(
+				$inv['number'],
+				$inv['client_name'],
+				$inv['client_email'],
+				$inv['invoice_date'],
+				$inv['due_date'],
+				$statuses[ $inv['status'] ] ?? $inv['status'],
+				$inv['currency'],
+				number_format( $inv['totals']['subtotal'], 2, '.', '' ),
+				number_format( $inv['totals']['tax_total'], 2, '.', '' ),
+				number_format( $inv['totals']['discount'], 2, '.', '' ),
+				number_format( $inv['totals']['total'], 2, '.', '' ),
+				number_format( $inv['totals']['paid'], 2, '.', '' ),
+				number_format( $inv['totals']['balance'], 2, '.', '' ),
+			) );
+		}
+		fclose( $out );
+		exit;
+	}
+
+	/**
+	 * Public "Pay Now" link on a shared invoice. This is a scaffold only:
+	 * Settings has fields ready for real bKash / SSLCommerz credentials, but
+	 * no live gateway API integration has been written yet, so every click
+	 * lands on an honest "online payment isn't set up yet" page rather than
+	 * pretending to process anything.
+	 */
+	public function handle_pay_now() {
+		$post_id = absint( $_GET['invoice_id'] ?? 0 );
+		$token   = sanitize_text_field( wp_unslash( $_GET['token'] ?? '' ) );
+		$invoice = WP_IM_Invoice::get( $post_id );
+
+		if ( ! $invoice || empty( $invoice['share_token'] ) || ! hash_equals( $invoice['share_token'], $token ) ) {
+			wp_die(
+				esc_html__( 'This invoice link is invalid or no longer active.', 'wp-invoice-manager' ),
+				esc_html__( 'Link not found', 'wp-invoice-manager' ),
+				array( 'response' => 404 )
+			);
+		}
+
+		include WP_IM_PLUGIN_DIR . 'templates/pay-now-not-configured.php';
 		exit;
 	}
 

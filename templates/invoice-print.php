@@ -56,6 +56,7 @@
 	}
 	.badge-draft     { background: #f1f5f9; color: #475569; }
 	.badge-sent      { background: #dbeafe; color: #1d4ed8; }
+	.badge-partial   { background: #fef3c7; color: #92400e; }
 	.badge-paid      { background: #d1fae5; color: #065f46; }
 	.badge-overdue   { background: #fee2e2; color: #991b1b; }
 	.badge-cancelled { background: #f3f4f6; color: #9ca3af; }
@@ -338,12 +339,42 @@
 					<span>- <?php echo esc_html( $symbol . number_format( $totals['discount'], 2 ) ); ?></span>
 				</div>
 				<?php endif; ?>
+				<?php if ( ! empty( $totals['paid'] ) && $totals['paid'] > 0 ) : ?>
+				<div class="totals-row">
+					<span>Total</span>
+					<span><?php echo esc_html( $symbol . number_format( $totals['total'], 2 ) ); ?></span>
+				</div>
+				<div class="totals-row">
+					<span>Amount Paid</span>
+					<span>- <?php echo esc_html( $symbol . number_format( $totals['paid'], 2 ) ); ?></span>
+				</div>
+				<div class="totals-row grand-total">
+					<span>Balance Due</span>
+					<span><?php echo esc_html( $symbol . number_format( $totals['balance'], 2 ) ); ?></span>
+				</div>
+				<?php else : ?>
 				<div class="totals-row grand-total">
 					<span>Total Due</span>
 					<span><?php echo esc_html( $symbol . number_format( $totals['total'], 2 ) ); ?></span>
 				</div>
+				<?php endif; ?>
 			</div>
 		</div>
+
+		<?php if ( $is_public && $totals['balance'] > 0 ) :
+			$pay_now_url = add_query_arg( array(
+				'action'     => 'wp_im_pay_now',
+				'invoice_id' => $invoice['post_id'],
+				'token'      => $invoice['share_token'],
+			), admin_url( 'admin-post.php' ) );
+		?>
+		<div class="pay-now-wrap no-print" style="text-align:right;margin:-16px 0 28px">
+			<a href="<?php echo esc_url( $pay_now_url ); ?>"
+				style="display:inline-block;background:<?php echo esc_attr( $primary_color ); ?>;color:#fff;padding:12px 28px;border-radius:6px;font-size:14px;font-weight:700;text-decoration:none">
+				💳 Pay Now — <?php echo esc_html( $symbol . number_format( $totals['balance'], 2 ) ); ?>
+			</a>
+		</div>
+		<?php endif; ?>
 
 		<?php if ( ! empty( $invoice['notes'] ) ) : ?>
 		<div class="inv-notes">

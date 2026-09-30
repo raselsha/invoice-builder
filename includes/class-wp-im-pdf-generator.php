@@ -15,21 +15,28 @@ class WP_IM_PDF_Generator {
 	/** @var array Invoice data from WP_IM_Invoice::to_array() */
 	private $invoice;
 
+	/** @var bool Whether this is the public, tokenised share view (vs. the admin print action) */
+	private $is_public;
+
 	/**
 	 * Constructor.
 	 *
 	 * @param array $invoice
+	 * @param bool  $is_public Whether this render is the public share view — controls
+	 *                         whether client-facing elements like "Pay Now" appear.
 	 */
-	public function __construct( array $invoice ) {
-		$this->invoice = $invoice;
+	public function __construct( array $invoice, $is_public = false ) {
+		$this->invoice   = $invoice;
+		$this->is_public = (bool) $is_public;
 	}
 
 	/**
 	 * Output a printable HTML invoice and die.
 	 */
 	public function render_html() {
-		$invoice  = $this->invoice;
-		$totals   = $invoice['totals'];
+		$invoice   = $this->invoice;
+		$is_public = $this->is_public;
+		$totals    = $invoice['totals'];
 		$symbol   = WP_IM_Invoice::currency_symbol( $invoice['currency'] );
 		$statuses = WP_IM_Invoice::get_statuses();
 		$status   = $statuses[ $invoice['status'] ] ?? $invoice['status'];

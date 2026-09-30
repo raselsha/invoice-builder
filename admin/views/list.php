@@ -9,15 +9,18 @@
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
-// Calculate total revenue from paid invoices
-$total_paid = 0;
-$total_overdue = 0;
-foreach ( WP_IM_Invoice::get_all() as $_p ) {
-	$_inv = WP_IM_Invoice::get( $_p->ID );
-	$_status = get_post_meta( $_p->ID, WP_IM_Invoice::META_STATUS, true );
-	if ( 'paid' === $_status ) $total_paid += $_inv['totals']['total'];
-	if ( 'overdue' === $_status ) $total_overdue += $_inv['totals']['total'];
-}
+// Note: revenue/outstanding totals are NOT summed here across all invoices —
+// different invoices can be in different currencies, and adding e.g. USD and
+// BDT amounts together would be meaningless. See the Reports page, which
+// breaks these down per-currency instead (WP_IM_Invoice::get_stats_by_currency()).
+
+$export_csv_url = wp_nonce_url(
+	add_query_arg( array( 'action' => 'wp_im_export_csv' ), admin_url( 'admin-post.php' ) ),
+	'wp_im_export_csv',
+	'wp_im_export_nonce'
+);
+
+$bulk_statuses = WP_IM_Invoice::get_statuses();
 ?>
 <div class="wim-wrap">
 
@@ -26,17 +29,24 @@ foreach ( WP_IM_Invoice::get_all() as $_p ) {
 			<span class="dashicons dashicons-media-spreadsheet"></span>
 			<?php esc_html_e( 'Invoice Manager', 'wp-invoice-manager' ); ?>
 		</h1>
-		<a href="<?php echo esc_url( admin_url( 'admin.php?page=wp-im-new-invoice' ) ); ?>" class="wim-btn wim-btn-primary">
-			<span class="dashicons dashicons-plus-alt2"></span>
-			<?php esc_html_e( 'New Invoice', 'wp-invoice-manager' ); ?>
-		</a>
+		<div style="display:flex;gap:10px">
+			<a href="<?php echo esc_url( $export_csv_url ); ?>" class="wim-btn wim-btn-secondary">
+				<span class="dashicons dashicons-download"></span>
+				<?php esc_html_e( 'Export CSV', 'wp-invoice-manager' ); ?>
+			</a>
+			<a href="<?php echo esc_url( admin_url( 'admin.php?page=wp-im-new-invoice' ) ); ?>" class="wim-btn wim-btn-primary">
+				<span class="dashicons dashicons-plus-alt2"></span>
+				<?php esc_html_e( 'New Invoice', 'wp-invoice-manager' ); ?>
+			</a>
+		</div>
 	</div>
 
 	<?php if ( isset( $_GET['message'] ) ) : ?>
 		<?php $msgs = array(
-			'created' => __( '✓ Invoice created successfully.', 'wp-invoice-manager' ),
-			'deleted' => __( '✓ Invoice deleted.', 'wp-invoice-manager' ),
-			'updated' => __( '✓ Invoice updated.', 'wp-invoice-manager' ),
+			'created'   => __( '✓ Invoice created successfully.', 'wp-invoice-manager' ),
+			'deleted'   => __( '✓ Invoice deleted.', 'wp-invoice-manager' ),
+			'updated'   => __( '✓ Invoice updated.', 'wp-invoice-manager' ),
+			'bulk_done' => __( '✓ Bulk action applied.', 'wp-invoice-manager' ),
 		); ?>
 		<div class="wim-notice wim-notice-success">
 			<?php echo esc_html( $msgs[ sanitize_key( $_GET['message'] ) ] ?? '' ); ?>
@@ -80,10 +90,34 @@ foreach ( WP_IM_Invoice::get_all() as $_p ) {
 	</div>
 
 	<!-- Invoice table -->
+	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" id="wim-bulk-form">
+		<?php wp_nonce_field( 'wp_im_bulk_action', 'wp_im_bulk_nonce' ); ?>
+		<input type="hidden" name="action" value="wp_im_bulk_action">
+
+		<?php if ( ! empty( $invoices ) ) : ?>
+		<div class="wim-bulk-bar">
+			<div style="width:160px">
+				<?php
+				$bulk_options = array( '' => __( 'Bulk actions…', 'wp-invoice-manager' ) );
+				foreach ( $bulk_statuses as $key => $label ) {
+					$bulk_options[ $key ] = sprintf( __( 'Set status: %s', 'wp-invoice-manager' ), $label );
+				}
+				$bulk_options['delete'] = __( 'Delete', 'wp-invoice-manager' );
+				wim_render_select( 'bulk_action', $bulk_options, '' );
+				?>
+			</div>
+			<button type="submit" class="wim-btn wim-btn-secondary wim-btn-sm" id="wim-bulk-apply">
+				<?php esc_html_e( 'Apply', 'wp-invoice-manager' ); ?>
+			</button>
+			<span class="wim-bulk-count"></span>
+		</div>
+		<?php endif; ?>
+
 	<div class="wim-table-wrap">
 		<table class="wim-table">
 			<thead>
 				<tr>
+					<th class="col-check"><input type="checkbox" id="wim-select-all"></th>
 					<th><?php esc_html_e( 'Invoice #', 'wp-invoice-manager' ); ?></th>
 					<th><?php esc_html_e( 'Client', 'wp-invoice-manager' ); ?></th>
 					<th><?php esc_html_e( 'Date', 'wp-invoice-manager' ); ?></th>
@@ -128,9 +162,23 @@ foreach ( WP_IM_Invoice::get_all() as $_p ) {
 						'wp_im_share_' . $post->ID,
 						'wp_im_share_nonce'
 					);
+					$duplicate_url = wp_nonce_url(
+						add_query_arg( array(
+							'action'     => 'wp_im_duplicate_invoice',
+							'invoice_id' => $post->ID,
+						), admin_url( 'admin-post.php' ) ),
+						'wp_im_duplicate_' . $post->ID,
+						'wp_im_duplicate_nonce'
+					);
 				?>
 				<tr>
-					<td><strong><?php echo esc_html( $inv['number'] ); ?></strong></td>
+					<td class="col-check"><input type="checkbox" class="wim-row-check" name="invoice_ids[]" value="<?php echo esc_attr( $post->ID ); ?>"></td>
+					<td>
+						<strong><?php echo esc_html( $inv['number'] ); ?></strong>
+						<?php if ( ! empty( $inv['recurring_frequency'] ) ) : ?>
+							<span class="dashicons dashicons-update" style="font-size:13px;width:13px;height:13px;color:var(--wim-info);margin-left:4px" title="<?php esc_attr_e( 'Recurring invoice', 'wp-invoice-manager' ); ?>"></span>
+						<?php endif; ?>
+					</td>
 					<td>
 						<?php echo esc_html( $inv['client_name'] ); ?><br>
 						<small style="color:var(--wim-muted)"><?php echo esc_html( $inv['client_email'] ); ?></small>
@@ -161,6 +209,11 @@ foreach ( WP_IM_Invoice::get_all() as $_p ) {
 							   class="wim-btn wim-btn-secondary wim-btn-sm">
 								<span class="dashicons dashicons-printer" style="font-size:14px;width:14px;height:14px;margin-top:2px"></span>
 								<?php esc_html_e( 'Print', 'wp-invoice-manager' ); ?>
+							</a>
+							<a href="<?php echo esc_url( $duplicate_url ); ?>"
+							   class="wim-btn wim-btn-secondary wim-btn-sm">
+								<span class="dashicons dashicons-admin-page" style="font-size:14px;width:14px;height:14px;margin-top:2px"></span>
+								<?php esc_html_e( 'Duplicate', 'wp-invoice-manager' ); ?>
 							</a>
 							<div class="wim-share-wrap">
 								<button type="button" class="wim-btn wim-btn-secondary wim-btn-sm wim-share-btn">
@@ -199,7 +252,7 @@ foreach ( WP_IM_Invoice::get_all() as $_p ) {
 				<?php endforeach; ?>
 			<?php else : ?>
 				<tr>
-					<td colspan="7">
+					<td colspan="8">
 						<div class="wim-table-empty">
 							<span class="dashicons dashicons-media-spreadsheet"></span>
 							<p><?php esc_html_e( 'No invoices found. Create your first invoice!', 'wp-invoice-manager' ); ?></p>
@@ -213,5 +266,6 @@ foreach ( WP_IM_Invoice::get_all() as $_p ) {
 			</tbody>
 		</table>
 	</div>
+	</form>
 
 </div>

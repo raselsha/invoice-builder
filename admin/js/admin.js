@@ -111,8 +111,10 @@
 			taxTotal += line * (tax / 100);
 		});
 
-		var discount = parseFloat($('#wim-discount').val()) || 0;
-		var total    = Math.max(0, subtotal + taxTotal - discount);
+		var discountRaw  = parseFloat($('#wim-discount').val()) || 0;
+		var discountType = $('select[name="discount_type"]').val() || 'flat';
+		var discount     = 'percent' === discountType ? (subtotal * discountRaw / 100) : discountRaw;
+		var total        = Math.max(0, subtotal + taxTotal - discount);
 
 		$('#wim-subtotal').text(subtotal.toFixed(2));
 		$('#wim-tax-total').text(taxTotal.toFixed(2));
@@ -238,6 +240,12 @@
 		if ($row.length) {
 			calcRow($row);
 		}
+		calcTotals();
+	});
+
+	// discount_type is a custom-select's hidden native <select>; its 'change'
+	// is fired manually by initCustomSelect() when an option is clicked.
+	$(document).on('change', 'select[name="discount_type"]', function () {
 		calcTotals();
 	});
 
@@ -622,13 +630,15 @@
 		});
 	});
 
-	$(document).on('click', '#wim-customer-modal-close, .wim-modal-cancel', function () {
-		closeCustomerModal();
+	// Generic modal close — works for any .wim-modal-overlay (Customer, Payment, …),
+	// not just one hardcoded modal, since .wim-modal-close/.wim-modal-cancel are shared classes.
+	$(document).on('click', '.wim-modal-close, .wim-modal-cancel', function () {
+		$(this).closest('.wim-modal-overlay').removeClass('is-open');
 	});
 
-	$(document).on('click', '#wim-customer-modal-overlay', function (e) {
+	$(document).on('click', '.wim-modal-overlay', function (e) {
 		if (e.target === this) {
-			closeCustomerModal();
+			$(this).removeClass('is-open');
 		}
 	});
 
@@ -638,7 +648,16 @@
 
 	$(document).on('keydown', function (e) {
 		if (27 === e.keyCode) { // Escape
-			closeCustomerModal();
+			$('.wim-modal-overlay').removeClass('is-open');
+		}
+	});
+
+	// ── Record Payment modal (invoice edit screen) ────────────────────────
+	$(document).on('click', '#wim-record-payment-btn', function () {
+		var $overlay = $('#wim-payment-modal-overlay');
+		if ($overlay.length) {
+			$overlay.addClass('is-open');
+			$overlay.find('input[name="amount"]').trigger('focus').select();
 		}
 	});
 
@@ -710,6 +729,37 @@
 		}
 	});
 
+	// ── Bulk actions (invoice list) ───────────────────────────────────────
+	function updateBulkCount() {
+		var n = $('.wim-row-check:checked').length;
+		$('.wim-bulk-count').text(n ? n + ' selected' : '');
+	}
+
+	$(document).on('change', '#wim-select-all', function () {
+		$('.wim-row-check').prop('checked', this.checked);
+		updateBulkCount();
+	});
+
+	$(document).on('change', '.wim-row-check', function () {
+		if (!this.checked) {
+			$('#wim-select-all').prop('checked', false);
+		}
+		updateBulkCount();
+	});
+
+	$(document).on('submit', '#wim-bulk-form', function (e) {
+		var action = $(this).find('select[name="bulk_action"]').val();
+		var count  = $('.wim-row-check:checked').length;
+
+		if (!count || !action) {
+			e.preventDefault();
+			return;
+		}
+		if ('delete' === action && !window.confirm('Delete ' + count + ' invoice(s)? This cannot be undone.')) {
+			e.preventDefault();
+		}
+	});
+
 	// ── AJAX status update (inline quick-edit) ───────────────────────────
 	$(document).on('change', '.wim-status-select', function () {
 		var $select  = $(this);
@@ -766,6 +816,11 @@
 				});
 			}
 		}
+	});
+
+	// ── Recurring invoice checkbox toggle ─────────────────────────────────
+	$(document).on('change', '#wim-is-recurring', function () {
+		$('#wim-recurring-fields').toggle(this.checked);
 	});
 
 	// ── Init on page load ────────────────────────────────────────────────
