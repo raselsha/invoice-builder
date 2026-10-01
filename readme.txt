@@ -4,7 +4,7 @@ Tags:              invoice, billing, payment, PDF, client management
 Requires at least: 5.8
 Tested up to:      6.5
 Requires PHP:      7.4
-Stable tag:        1.5.2
+Stable tag:        1.5.3
 License:           GPLv2 or later
 License URI:       https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -78,6 +78,11 @@ Invoice meta is stored as WordPress post meta on the `wp_invoice` custom post ty
 Yes – all strings use `__()` / `_e()` with the `wp-invoice-manager` text domain.
 
 == Changelog ==
+
+= 1.5.3 =
+* Fix: the printed/shared invoice header showed the biller email directly under the logo
+  (redundant with — and visually disconnected from — the biller email already shown in the
+  "From" block in the body). Removed it from the header; it's only shown once now.
 
 = 1.5.2 =
 * Fix: in "Both" logo display mode, the logo image sat stacked above the company name
