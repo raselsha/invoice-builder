@@ -113,6 +113,12 @@ $color_themes = array(
 					<label><?php esc_html_e( 'Company Address', 'wp-invoice-manager' ); ?></label>
 					<textarea name="company_address"><?php echo esc_textarea( get_option( 'wp_im_company_address', '' ) ); ?></textarea>
 				</div>
+				<div class="wim-field">
+					<label><?php esc_html_e( 'Company Logo URL', 'wp-invoice-manager' ); ?></label>
+					<input type="url" name="company_logo_url" placeholder="https://example.com/logo.png"
+						value="<?php echo esc_attr( get_option( 'wp_im_company_logo_url', '' ) ); ?>">
+					<p class="wim-field-hint"><?php esc_html_e( 'Shown in the "Send to Client" email header. Leave blank to show the company name as text instead.', 'wp-invoice-manager' ); ?></p>
+				</div>
 			</div>
 
 			<div class="wim-section">

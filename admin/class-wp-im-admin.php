@@ -407,43 +407,50 @@ class WP_IM_Admin {
 	 * @return string
 	 */
 	private function build_send_invoice_email_html( array $invoice, $share_url ) {
-		$symbol = WP_IM_Invoice::currency_symbol( $invoice['currency'] );
-		$accent = get_option( 'wp_im_primary_color', '#e94560' );
+		$symbol      = WP_IM_Invoice::currency_symbol( $invoice['currency'] );
+		$accent      = get_option( 'wp_im_primary_color', '#e94560' );
+		$header_bg   = get_option( 'wp_im_header_color', '#1a1a2e' );
+		$header_text = get_option( 'wp_im_header_text_color', WP_IM_Invoice::readable_text_color( $header_bg ) );
+		$logo_url    = get_option( 'wp_im_company_logo_url', '' );
 
 		ob_start();
 		?>
-		<div style="font-family:'Segoe UI',Arial,sans-serif;background:#f8f9fc;padding:32px 16px">
-			<div style="max-width:520px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.08)">
-				<div style="background:#1a1a2e;padding:28px 32px;color:#fff">
-					<div style="font-size:18px;font-weight:700"><?php echo esc_html( $invoice['biller_name'] ); ?></div>
+		<div style="font-family:'Segoe UI',Arial,sans-serif;background:#f8f9fc;padding:48px 20px">
+			<div style="max-width:620px;margin:0 auto;background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.1)">
+				<div style="background:<?php echo esc_attr( $header_bg ); ?>;padding:40px 44px;color:<?php echo esc_attr( $header_text ); ?>">
+					<?php if ( $logo_url ) : ?>
+						<img src="<?php echo esc_url( $logo_url ); ?>" alt="<?php echo esc_attr( $invoice['biller_name'] ); ?>" style="display:block;max-height:56px;width:auto">
+					<?php else : ?>
+						<div style="font-size:26px;font-weight:800;letter-spacing:-.02em"><?php echo esc_html( $invoice['biller_name'] ); ?></div>
+					<?php endif; ?>
 				</div>
-				<div style="padding:32px">
-					<p style="margin:0 0 16px;color:#1e293b;font-size:14px">
+				<div style="padding:44px">
+					<p style="margin:0 0 20px;color:#1e293b;font-size:17px;font-weight:600">
 						<?php echo esc_html( sprintf( __( 'Dear %s,', 'wp-invoice-manager' ), $invoice['client_name'] ) ); ?>
 					</p>
-					<p style="margin:0 0 24px;color:#475569;font-size:13.5px;line-height:1.7">
+					<p style="margin:0 0 32px;color:#475569;font-size:15px;line-height:1.75">
 						<?php esc_html_e( 'Please find your invoice summary below. You can view, print, or pay it online using the button below.', 'wp-invoice-manager' ); ?>
 					</p>
-					<table style="width:100%;border-collapse:collapse;margin-bottom:24px">
+					<table style="width:100%;border-collapse:collapse;margin-bottom:32px">
 						<tr>
-							<td style="padding:8px 0;color:#64748b;font-size:13px"><?php esc_html_e( 'Invoice #', 'wp-invoice-manager' ); ?></td>
-							<td style="padding:8px 0;color:#1e293b;font-size:13px;text-align:right;font-weight:700"><?php echo esc_html( $invoice['number'] ); ?></td>
+							<td style="padding:14px 0;color:#64748b;font-size:14.5px"><?php esc_html_e( 'Invoice #', 'wp-invoice-manager' ); ?></td>
+							<td style="padding:14px 0;color:#1e293b;font-size:15px;text-align:right;font-weight:700"><?php echo esc_html( $invoice['number'] ); ?></td>
 						</tr>
 						<tr>
-							<td style="padding:8px 0;color:#64748b;font-size:13px;border-top:1px solid #f1f5f9"><?php esc_html_e( 'Total', 'wp-invoice-manager' ); ?></td>
-							<td style="padding:8px 0;color:#1e293b;font-size:13px;text-align:right;border-top:1px solid #f1f5f9"><?php echo esc_html( $symbol . number_format( $invoice['totals']['total'], 2 ) ); ?></td>
+							<td style="padding:14px 0;color:#64748b;font-size:14.5px;border-top:1px solid #f1f5f9"><?php esc_html_e( 'Total', 'wp-invoice-manager' ); ?></td>
+							<td style="padding:14px 0;color:#1e293b;font-size:18px;text-align:right;font-weight:800;border-top:1px solid #f1f5f9"><?php echo esc_html( $symbol . number_format( $invoice['totals']['total'], 2 ) ); ?></td>
 						</tr>
 						<tr>
-							<td style="padding:8px 0;color:#64748b;font-size:13px;border-top:1px solid #f1f5f9"><?php esc_html_e( 'Due Date', 'wp-invoice-manager' ); ?></td>
-							<td style="padding:8px 0;color:#1e293b;font-size:13px;text-align:right;border-top:1px solid #f1f5f9"><?php echo esc_html( $invoice['due_date'] ? $invoice['due_date'] : '—' ); ?></td>
+							<td style="padding:14px 0;color:#64748b;font-size:14.5px;border-top:1px solid #f1f5f9"><?php esc_html_e( 'Due Date', 'wp-invoice-manager' ); ?></td>
+							<td style="padding:14px 0;color:#1e293b;font-size:15px;text-align:right;border-top:1px solid #f1f5f9"><?php echo esc_html( $invoice['due_date'] ? $invoice['due_date'] : '—' ); ?></td>
 						</tr>
 					</table>
-					<div style="text-align:center;margin-bottom:8px">
-						<a href="<?php echo esc_url( $share_url ); ?>" style="display:inline-block;background:<?php echo esc_attr( $accent ); ?>;color:#fff;padding:13px 32px;border-radius:6px;font-size:14px;font-weight:700;text-decoration:none">
+					<div style="text-align:center;margin-bottom:12px">
+						<a href="<?php echo esc_url( $share_url ); ?>" style="display:inline-block;background:<?php echo esc_attr( $accent ); ?>;color:#fff;padding:17px 44px;border-radius:8px;font-size:16px;font-weight:700;text-decoration:none">
 							<?php esc_html_e( 'View, Print & Pay Invoice', 'wp-invoice-manager' ); ?>
 						</a>
 					</div>
-					<p style="text-align:center;margin:16px 0 0;color:#94a3b8;font-size:11.5px">
+					<p style="text-align:center;margin:24px 0 0;color:#94a3b8;font-size:13px">
 						<?php esc_html_e( 'Thank you for your business.', 'wp-invoice-manager' ); ?>
 					</p>
 				</div>
@@ -516,6 +523,7 @@ class WP_IM_Admin {
 		update_option( 'wp_im_company_email',  sanitize_email( $_POST['company_email'] ?? '' ) );
 		update_option( 'wp_im_company_phone',  sanitize_text_field( $_POST['company_phone'] ?? '' ) );
 		update_option( 'wp_im_company_address',sanitize_textarea_field( $_POST['company_address'] ?? '' ) );
+		update_option( 'wp_im_company_logo_url', esc_url_raw( $_POST['company_logo_url'] ?? '' ) );
 		update_option( 'wp_im_default_currency', sanitize_text_field( $_POST['default_currency'] ?? 'USD' ) );
 		update_option( 'wp_im_default_tax',    floatval( $_POST['default_tax'] ?? 0 ) );
 		update_option( 'wp_im_footer_text',    sanitize_text_field( $_POST['footer_text'] ?? WP_IM_Invoice::get_default_footer_text() ) );

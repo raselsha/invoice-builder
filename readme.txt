@@ -4,7 +4,7 @@ Tags:              invoice, billing, payment, PDF, client management
 Requires at least: 5.8
 Tested up to:      6.5
 Requires PHP:      7.4
-Stable tag:        1.4.2
+Stable tag:        1.5.0
 License:           GPLv2 or later
 License URI:       https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -78,6 +78,15 @@ Invoice meta is stored as WordPress post meta on the `wp_invoice` custom post ty
 Yes – all strings use `__()` / `_e()` with the `wp-invoice-manager` text domain.
 
 == Changelog ==
+
+= 1.5.0 =
+* New: Settings → Company Information now has a "Company Logo URL" field. When set, the
+  "Send to Client" email shows your actual logo image in the header instead of plain
+  company-name text; leave it blank to keep the text header.
+* Improved: the "Send to Client" email is noticeably larger and roomier — wider card
+  (620px), bigger padding, bigger fonts (especially the invoice total), and the header
+  now uses your configured header color/text color instead of a fixed dark navy, matching
+  the rest of the invoice branding.
 
 = 1.4.2 =
 * Fix: a fully-paid invoice's totals box was showing an "Amount Paid" / "Paid in
