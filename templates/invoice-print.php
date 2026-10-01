@@ -31,7 +31,8 @@
 		align-items: flex-start;
 	}
 	.inv-header .brand { font-size: 22px; font-weight: 800; letter-spacing: -.02em; }
-	.inv-header .brand .brand-logo { display: block; max-height: 44px; width: auto; margin-bottom: 8px; }
+	.inv-header .brand-row { display: flex; align-items: center; gap: 12px; }
+	.inv-header .brand .brand-logo { display: block; max-height: 44px; width: auto; }
 	.inv-header .brand small { display: block; font-size: 12px; font-weight: 400; color: <?php echo esc_attr( $header_text_muted ); ?>; margin-top: 4px; }
 	.inv-meta { text-align: right; }
 	.inv-meta .inv-number { font-size: 28px; font-weight: 900; color: <?php echo esc_attr( $primary_color ); ?>; }
@@ -176,7 +177,7 @@
 
 		.inv-header { padding: 16px 24px; }
 		.inv-header .brand { font-size: 17px; }
-		.inv-header .brand .brand-logo { max-height: 32px; margin-bottom: 4px; }
+		.inv-header .brand .brand-logo { max-height: 32px; }
 		.inv-header .brand small { margin-top: 2px; }
 		.inv-meta .inv-number { font-size: 20px; }
 
@@ -226,12 +227,14 @@
 
 	<div class="inv-header">
 		<div class="brand">
-			<?php if ( $show_logo_image ) : ?>
-				<img src="<?php echo esc_url( $logo_url ); ?>" alt="<?php echo esc_attr( $invoice['biller_name'] ); ?>" class="brand-logo">
-			<?php endif; ?>
-			<?php if ( $show_logo_text ) : ?>
-				<?php echo esc_html( $invoice['biller_name'] ); ?>
-			<?php endif; ?>
+			<div class="brand-row">
+				<?php if ( $show_logo_image ) : ?>
+					<img src="<?php echo esc_url( $logo_url ); ?>" alt="<?php echo esc_attr( $invoice['biller_name'] ); ?>" class="brand-logo">
+				<?php endif; ?>
+				<?php if ( $show_logo_text ) : ?>
+					<span><?php echo esc_html( $invoice['biller_name'] ); ?></span>
+				<?php endif; ?>
+			</div>
 			<small><?php echo esc_html( $invoice['biller_email'] ); ?></small>
 		</div>
 		<div class="inv-meta">

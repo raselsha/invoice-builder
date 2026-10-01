@@ -426,10 +426,10 @@ class WP_IM_Admin {
 			<div style="max-width:620px;margin:0 auto;background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.1)">
 				<div style="background:<?php echo esc_attr( $header_bg ); ?>;padding:40px 44px;color:<?php echo esc_attr( $header_text ); ?>">
 					<?php if ( $show_image ) : ?>
-						<img src="<?php echo esc_url( $logo_url ); ?>" alt="<?php echo esc_attr( $invoice['biller_name'] ); ?>" style="display:block;max-height:56px;width:auto<?php echo $show_text ? ';margin-bottom:12px' : ''; ?>">
+						<img src="<?php echo esc_url( $logo_url ); ?>" alt="<?php echo esc_attr( $invoice['biller_name'] ); ?>" style="display:inline-block;vertical-align:middle;max-height:56px;width:auto<?php echo $show_text ? ';margin-right:16px' : ''; ?>">
 					<?php endif; ?>
 					<?php if ( $show_text ) : ?>
-						<div style="font-size:26px;font-weight:800;letter-spacing:-.02em"><?php echo esc_html( $invoice['biller_name'] ); ?></div>
+						<span style="display:inline-block;vertical-align:middle;font-size:26px;font-weight:800;letter-spacing:-.02em"><?php echo esc_html( $invoice['biller_name'] ); ?></span>
 					<?php endif; ?>
 				</div>
 				<div style="padding:44px">
