@@ -113,11 +113,39 @@ $color_themes = array(
 					<label><?php esc_html_e( 'Company Address', 'wp-invoice-manager' ); ?></label>
 					<textarea name="company_address"><?php echo esc_textarea( get_option( 'wp_im_company_address', '' ) ); ?></textarea>
 				</div>
+				<?php $logo_url = get_option( 'wp_im_company_logo_url', '' ); ?>
 				<div class="wim-field">
-					<label><?php esc_html_e( 'Company Logo URL', 'wp-invoice-manager' ); ?></label>
-					<input type="url" name="company_logo_url" placeholder="https://example.com/logo.png"
-						value="<?php echo esc_attr( get_option( 'wp_im_company_logo_url', '' ) ); ?>">
-					<p class="wim-field-hint"><?php esc_html_e( 'Shown in the "Send to Client" email header. Leave blank to show the company name as text instead.', 'wp-invoice-manager' ); ?></p>
+					<label><?php esc_html_e( 'Company Logo', 'wp-invoice-manager' ); ?></label>
+					<div class="wim-logo-picker">
+						<div class="wim-logo-preview<?php echo $logo_url ? '' : ' is-empty'; ?>">
+							<img src="<?php echo esc_url( $logo_url ); ?>" alt="">
+							<span class="wim-logo-preview-empty"><?php esc_html_e( 'No logo', 'wp-invoice-manager' ); ?></span>
+						</div>
+						<div class="wim-logo-picker-controls">
+							<input type="url" name="company_logo_url" id="wim-logo-url" placeholder="https://example.com/logo.png"
+								value="<?php echo esc_attr( $logo_url ); ?>">
+							<div class="wim-logo-picker-buttons">
+								<button type="button" class="wim-btn wim-btn-secondary wim-btn-sm" id="wim-logo-upload">
+									<span class="dashicons dashicons-upload" style="font-size:14px;width:14px;height:14px;margin-top:2px"></span>
+									<?php esc_html_e( 'Upload / Choose Image', 'wp-invoice-manager' ); ?>
+								</button>
+								<button type="button" class="wim-btn wim-btn-secondary wim-btn-sm" id="wim-logo-remove"<?php echo $logo_url ? '' : ' style="display:none"'; ?>>
+									<?php esc_html_e( 'Remove', 'wp-invoice-manager' ); ?>
+								</button>
+							</div>
+						</div>
+					</div>
+				</div>
+				<div class="wim-field">
+					<label><?php esc_html_e( 'Logo Display (in the "Send to Client" email)', 'wp-invoice-manager' ); ?></label>
+					<?php
+					wim_render_select( 'logo_display_mode', array(
+						'image' => __( 'Image only', 'wp-invoice-manager' ),
+						'text'  => __( 'Text only (company name)', 'wp-invoice-manager' ),
+						'both'  => __( 'Both — image above company name', 'wp-invoice-manager' ),
+					), get_option( 'wp_im_logo_display_mode', 'image' ) );
+					?>
+					<p class="wim-field-hint"><?php esc_html_e( 'If no logo image is set, the company name text is always shown regardless of this setting.', 'wp-invoice-manager' ); ?></p>
 				</div>
 			</div>
 

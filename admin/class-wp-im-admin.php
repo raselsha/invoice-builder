@@ -193,6 +193,10 @@ class WP_IM_Admin {
 			return;
 		}
 
+		if ( 'wp-im-settings' === ( $_GET['page'] ?? '' ) ) {
+			wp_enqueue_media();
+		}
+
 		$css_path = WP_IM_PLUGIN_DIR . 'admin/css/admin.css';
 		$js_path  = WP_IM_PLUGIN_DIR . 'admin/js/admin.js';
 
@@ -412,15 +416,19 @@ class WP_IM_Admin {
 		$header_bg   = get_option( 'wp_im_header_color', '#1a1a2e' );
 		$header_text = get_option( 'wp_im_header_text_color', WP_IM_Invoice::readable_text_color( $header_bg ) );
 		$logo_url    = get_option( 'wp_im_company_logo_url', '' );
+		$logo_mode   = get_option( 'wp_im_logo_display_mode', 'image' );
+		$show_image  = $logo_url && 'text' !== $logo_mode;
+		$show_text   = ! $logo_url || 'image' !== $logo_mode;
 
 		ob_start();
 		?>
 		<div style="font-family:'Segoe UI',Arial,sans-serif;background:#f8f9fc;padding:48px 20px">
 			<div style="max-width:620px;margin:0 auto;background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.1)">
 				<div style="background:<?php echo esc_attr( $header_bg ); ?>;padding:40px 44px;color:<?php echo esc_attr( $header_text ); ?>">
-					<?php if ( $logo_url ) : ?>
-						<img src="<?php echo esc_url( $logo_url ); ?>" alt="<?php echo esc_attr( $invoice['biller_name'] ); ?>" style="display:block;max-height:56px;width:auto">
-					<?php else : ?>
+					<?php if ( $show_image ) : ?>
+						<img src="<?php echo esc_url( $logo_url ); ?>" alt="<?php echo esc_attr( $invoice['biller_name'] ); ?>" style="display:block;max-height:56px;width:auto<?php echo $show_text ? ';margin-bottom:12px' : ''; ?>">
+					<?php endif; ?>
+					<?php if ( $show_text ) : ?>
 						<div style="font-size:26px;font-weight:800;letter-spacing:-.02em"><?php echo esc_html( $invoice['biller_name'] ); ?></div>
 					<?php endif; ?>
 				</div>
@@ -524,6 +532,7 @@ class WP_IM_Admin {
 		update_option( 'wp_im_company_phone',  sanitize_text_field( $_POST['company_phone'] ?? '' ) );
 		update_option( 'wp_im_company_address',sanitize_textarea_field( $_POST['company_address'] ?? '' ) );
 		update_option( 'wp_im_company_logo_url', esc_url_raw( $_POST['company_logo_url'] ?? '' ) );
+		update_option( 'wp_im_logo_display_mode', in_array( $_POST['logo_display_mode'] ?? 'image', array( 'image', 'text', 'both' ), true ) ? $_POST['logo_display_mode'] : 'image' );
 		update_option( 'wp_im_default_currency', sanitize_text_field( $_POST['default_currency'] ?? 'USD' ) );
 		update_option( 'wp_im_default_tax',    floatval( $_POST['default_tax'] ?? 0 ) );
 		update_option( 'wp_im_footer_text',    sanitize_text_field( $_POST['footer_text'] ?? WP_IM_Invoice::get_default_footer_text() ) );

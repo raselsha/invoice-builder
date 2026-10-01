@@ -249,6 +249,44 @@
 		calcTotals();
 	});
 
+	// ── Company logo picker (Settings → Company Information) ─────────────
+	function setLogoPreview(url) {
+		var $preview = $('.wim-logo-preview');
+		$preview.find('img').attr('src', url || '');
+		$preview.toggleClass('is-empty', !url);
+		$('#wim-logo-remove').toggle(!!url);
+	}
+
+	$(document).on('click', '#wim-logo-upload', function (e) {
+		e.preventDefault();
+		if (typeof wp === 'undefined' || !wp.media) {
+			return;
+		}
+		var frame = wp.media({
+			title: 'Select or Upload Logo',
+			button: { text: 'Use this image' },
+			multiple: false,
+			library: { type: 'image' }
+		});
+		frame.on('select', function () {
+			var attachment = frame.state().get('selection').first().toJSON();
+			var url = attachment.sizes && attachment.sizes.medium ? attachment.sizes.medium.url : attachment.url;
+			$('#wim-logo-url').val(url);
+			setLogoPreview(url);
+		});
+		frame.open();
+	});
+
+	$(document).on('click', '#wim-logo-remove', function (e) {
+		e.preventDefault();
+		$('#wim-logo-url').val('');
+		setLogoPreview('');
+	});
+
+	$(document).on('input', '#wim-logo-url', function () {
+		setLogoPreview($(this).val().trim());
+	});
+
 	// ── Quick color themes (Settings → Invoice Colors) ───────────────────
 	function setPickerColor(role, color) {
 		var $input = $('.wim-color-hex[data-role="' + role + '"]');

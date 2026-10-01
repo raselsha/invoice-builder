@@ -1233,3 +1233,28 @@
 }
 .wim-chart-bar-value { font-size: 10.5px; color: var(--wim-muted); margin-top: 6px; }
 .wim-chart-bar-label { font-size: 11px; color: var(--wim-text); font-weight: 600; margin-top: 2px; }
+
+/* ── Company logo picker (Settings) ───────────────────────── */
+.wim-logo-picker {
+	display: flex;
+	gap: 16px;
+	align-items: flex-start;
+}
+.wim-logo-preview {
+	width: 96px;
+	height: 96px;
+	flex: 0 0 96px;
+	border: 1.5px dashed var(--wim-border);
+	border-radius: var(--wim-radius);
+	background: var(--wim-surface2);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	overflow: hidden;
+}
+.wim-logo-preview img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.wim-logo-preview.is-empty img { display: none; }
+.wim-logo-preview-empty { display: none; font-size: 11px; color: var(--wim-muted); text-align: center; padding: 0 6px; }
+.wim-logo-preview.is-empty .wim-logo-preview-empty { display: block; }
+.wim-logo-picker-controls { flex: 1; display: flex; flex-direction: column; gap: 10px; }
+.wim-logo-picker-buttons { display: flex; gap: 8px; }

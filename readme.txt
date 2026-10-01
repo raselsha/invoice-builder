@@ -4,7 +4,7 @@ Tags:              invoice, billing, payment, PDF, client management
 Requires at least: 5.8
 Tested up to:      6.5
 Requires PHP:      7.4
-Stable tag:        1.5.0
+Stable tag:        1.5.1
 License:           GPLv2 or later
 License URI:       https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -78,6 +78,15 @@ Invoice meta is stored as WordPress post meta on the `wp_invoice` custom post ty
 Yes – all strings use `__()` / `_e()` with the `wp-invoice-manager` text domain.
 
 == Changelog ==
+
+= 1.5.1 =
+* New: the Company Logo field now has a proper "Upload / Choose Image" button using the
+  WordPress media library, with a live preview and a Remove button — no more pasting a
+  raw URL by hand (though the URL field is still there and editable directly too).
+* New: a "Logo Display" setting — Image only, Text only, or Both (image above the company
+  name) — controls how the logo/company name appears. Applies consistently to both the
+  "Send to Client" email header and the printed/shared invoice header. Falls back to text
+  automatically wherever no logo is set, regardless of this setting.
 
 = 1.5.0 =
 * New: Settings → Company Information now has a "Company Logo URL" field. When set, the

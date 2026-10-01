@@ -52,6 +52,11 @@ class WP_IM_PDF_Generator {
 		$header_text_muted = WP_IM_Invoice::hex_to_rgba( $header_text_color, .65 );
 		$date_text_muted   = WP_IM_Invoice::hex_to_rgba( $date_text_color, .65 );
 
+		$logo_url   = get_option( 'wp_im_company_logo_url', '' );
+		$logo_mode  = get_option( 'wp_im_logo_display_mode', 'image' );
+		$show_logo_image = $logo_url && 'text' !== $logo_mode;
+		$show_logo_text  = ! $logo_url || 'image' !== $logo_mode;
+
 		$footer_text = strtr( get_option( 'wp_im_footer_text', WP_IM_Invoice::get_default_footer_text() ), array(
 			'{site_name}' => get_bloginfo( 'name' ),
 			'{date}'      => date_i18n( 'F j, Y' ),
