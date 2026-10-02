@@ -149,12 +149,7 @@ $bulk_statuses = WP_IM_Invoice::get_statuses();
 						'wp_im_delete_' . $post->ID,
 						'wp_im_delete_nonce'
 					);
-					$share_token = WP_IM_Invoice::get_or_create_share_token( $post->ID );
-					$share_url   = add_query_arg( array(
-						'action'     => 'wp_im_view_shared_invoice',
-						'invoice_id' => $post->ID,
-						'token'      => $share_token,
-					), admin_url( 'admin-post.php' ) );
+					$share_url = WP_IM_Invoice::get_share_url( $post->ID );
 					$regen_url = wp_nonce_url(
 						add_query_arg( array(
 							'action'     => 'wp_im_regenerate_share_link',

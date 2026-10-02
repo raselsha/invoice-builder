@@ -70,7 +70,8 @@
 		gap: 40px;
 		margin-bottom: 36px;
 	}
-	.party { flex: 1; }
+	.party { flex: 1; min-width: 0; }
+	.party-right { text-align: right; }
 	.party-label {
 		font-size: 10px;
 		font-weight: 700;
@@ -80,7 +81,7 @@
 		margin-bottom: 8px;
 	}
 	.party-name { font-size: 16px; font-weight: 700; color: #1a1a2e; margin-bottom: 4px; }
-	.party-detail { color: #64748b; line-height: 1.6; white-space: pre-line; }
+	.party-detail { color: #64748b; line-height: 1.6; white-space: pre-line; overflow-wrap: break-word; }
 	/* Items table */
 	.items-table { width: 100%; border-collapse: collapse; margin-bottom: 28px; }
 	.items-table thead th {
@@ -100,7 +101,9 @@
 		padding: 12px;
 		border-bottom: 1px solid #f1f5f9;
 		color: #334155;
+		overflow-wrap: break-word;
 	}
+	.items-table td:first-child, .items-table th:first-child { width: 42%; }
 	.items-table tbody td:not(:first-child) { text-align: right; }
 	/* Totals */
 	.totals-wrap { display: flex; justify-content: flex-end; margin-bottom: 36px; }
@@ -164,6 +167,38 @@
 		border-top: 1px solid #e2e8f0;
 		margin-top: 40px;
 	}
+	/* Mobile — the invoice is viewed on a phone far more often than it's
+	   printed (share links opened straight from WhatsApp/email), so this
+	   isn't optional polish: without it, the fixed desktop paddings and
+	   side-by-side layouts overflow the viewport and get clipped. */
+	@media (max-width: 640px) {
+		body { padding: 0; font-size: 12.5px; }
+		.invoice-shell { border-radius: 0; box-shadow: none; }
+
+		.inv-header { flex-direction: column; align-items: flex-start; gap: 14px; padding: 24px 20px; }
+		.inv-meta { text-align: left; }
+		.inv-meta .inv-number { font-size: 22px; }
+
+		.inv-status-bar { flex-wrap: wrap; row-gap: 10px; column-gap: 20px; padding: 14px 20px; }
+
+		.inv-body { padding: 24px 20px; }
+
+		.parties { flex-direction: column; gap: 20px; margin-bottom: 24px; }
+		.party-right { text-align: left; }
+
+		.items-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 0 -20px 28px; padding: 0 20px; }
+		.items-table-wrap .items-table { margin-bottom: 0; }
+		.items-table td:not(:first-child), .items-table th:not(:first-child) { white-space: nowrap; }
+
+		.totals-wrap { justify-content: stretch; }
+		.totals-box { min-width: 0; width: 100%; }
+
+		.pay-now-wrap { text-align: center !important; margin: 0 0 20px !important; }
+		.pay-now-wrap a { display: block; }
+
+		.inv-footer { padding: 20px; }
+	}
+
 	/* Print — compact spacing so a normal invoice fits on one page.
 	   The on-screen look above is untouched; these overrides only apply
 	   when actually printing / saving as PDF. */
@@ -283,7 +318,7 @@
 					echo implode( '<br>', $biller_lines ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 				?></div>
 			</div>
-			<div class="party" style="text-align:right">
+			<div class="party party-right">
 				<div class="party-label">Bill To</div>
 				<div class="party-name"><?php echo esc_html( $invoice['client_name'] ); ?></div>
 				<div class="party-detail"><?php
@@ -307,6 +342,7 @@
 			</div>
 		</div>
 
+		<div class="items-table-wrap">
 		<table class="items-table">
 			<thead>
 				<tr>
@@ -333,6 +369,7 @@
 				<?php endforeach; ?>
 			</tbody>
 		</table>
+		</div>
 
 		<div class="totals-wrap">
 			<div class="totals-box">
@@ -378,11 +415,7 @@
 		</div>
 
 		<?php if ( $is_public && $totals['balance'] > 0 ) :
-			$pay_now_url = add_query_arg( array(
-				'action'     => 'wp_im_pay_now',
-				'invoice_id' => $invoice['post_id'],
-				'token'      => $invoice['share_token'],
-			), admin_url( 'admin-post.php' ) );
+			$pay_now_url = WP_IM_Invoice::get_pay_now_url( $invoice['post_id'] );
 		?>
 		<div class="pay-now-wrap no-print" style="text-align:right;margin:-16px 0 28px">
 			<a href="<?php echo esc_url( $pay_now_url ); ?>"

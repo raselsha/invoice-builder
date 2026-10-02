@@ -4,18 +4,14 @@
  * (bKash / SSLCommerz) is actually integrated. Settings has fields ready for
  * the credentials, but no live API call happens here yet.
  *
- * Variables: $invoice (array), $post_id (int), $token (string)
+ * Variables: $invoice (array)
  *
  * @package WP_Invoice_Manager
  */
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
-$back_url = add_query_arg( array(
-	'action'     => 'wp_im_view_shared_invoice',
-	'invoice_id' => $post_id,
-	'token'      => $token,
-), admin_url( 'admin-post.php' ) );
+$back_url = WP_IM_Invoice::get_share_url( $invoice['post_id'] );
 ?>
 <!DOCTYPE html>
 <html lang="en">

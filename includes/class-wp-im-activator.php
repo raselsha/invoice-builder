@@ -41,5 +41,10 @@ class WP_IM_Activator {
 		if ( ! wp_next_scheduled( 'wp_im_process_recurring_invoices' ) ) {
 			wp_schedule_event( time(), 'daily', 'wp_im_process_recurring_invoices' );
 		}
+
+		if ( class_exists( 'WP_IM_Post_Type' ) ) {
+			( new WP_IM_Post_Type() )->register();
+		}
+		flush_rewrite_rules();
 	}
 }

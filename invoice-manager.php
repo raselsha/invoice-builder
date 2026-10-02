@@ -3,7 +3,7 @@
  * Plugin Name:       WP Invoice Manager
  * Plugin URI:        https://github.com/your-repo/wp-invoice-manager
  * Description:       A professional OOP-based invoice management system for WordPress.
- * Version:           1.5.3
+ * Version:           1.6.0
  * Author:            Your Name
  * Author URI:        https://yourwebsite.com
  * License:           GPL-2.0+
@@ -19,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Define plugin constants
-define( 'WP_IM_VERSION', '1.5.3' );
+define( 'WP_IM_VERSION', '1.6.0' );
 define( 'WP_IM_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'WP_IM_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'WP_IM_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
@@ -89,11 +89,10 @@ final class WP_Invoice_Manager {
 		$post_type = new WP_IM_Post_Type();
 		$post_type->register();
 
-		// Boot admin
-		if ( is_admin() ) {
-			$admin = new WP_IM_Admin();
-			$admin->init();
-		}
+		// Boot the controller on every request — it also handles the public,
+		// pretty invoice-share URL on the front end, not just wp-admin.
+		$admin = new WP_IM_Admin();
+		$admin->init();
 	}
 
 	/**

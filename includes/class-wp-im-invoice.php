@@ -849,6 +849,58 @@ class WP_IM_Invoice {
 	}
 
 	/**
+	 * Find an invoice by its public share token — the pretty-URL ("/invoice/{token}/")
+	 * route resolves to an invoice this way instead of a separate invoice_id param.
+	 *
+	 * @param string $token
+	 * @return array|null
+	 */
+	public static function get_by_share_token( $token ) {
+		$token = sanitize_text_field( $token );
+		if ( '' === $token ) {
+			return null;
+		}
+
+		$posts = get_posts( array(
+			'post_type'      => WP_IM_Post_Type::POST_TYPE,
+			'post_status'    => 'publish',
+			'posts_per_page' => 1,
+			'fields'         => 'ids',
+			'meta_query'     => array( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
+				array(
+					'key'   => self::META_SHARE_TOKEN,
+					'value' => $token,
+				),
+			),
+		) );
+
+		return $posts ? self::get( $posts[0] ) : null;
+	}
+
+	/**
+	 * Public, pretty "view invoice" URL — /invoice/{token}/ — resolved by the
+	 * rewrite rule registered in WP_IM_Post_Type.
+	 *
+	 * @param int $post_id
+	 * @return string
+	 */
+	public static function get_share_url( $post_id ) {
+		$token = self::get_or_create_share_token( $post_id );
+		return home_url( 'invoice/' . rawurlencode( $token ) . '/' );
+	}
+
+	/**
+	 * Public, pretty "pay now" URL — /invoice/{token}/pay/.
+	 *
+	 * @param int $post_id
+	 * @return string
+	 */
+	public static function get_pay_now_url( $post_id ) {
+		$token = self::get_or_create_share_token( $post_id );
+		return home_url( 'invoice/' . rawurlencode( $token ) . '/pay/' );
+	}
+
+	/**
 	 * Log one open of the public share link (for "has the client seen this
 	 * invoice?" tracking). Keeps only the most recent 50 timestamps.
 	 *

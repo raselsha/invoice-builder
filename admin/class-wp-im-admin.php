@@ -27,7 +27,9 @@ class WP_IM_Admin {
 		// Print / PDF
 		add_action( 'admin_post_wp_im_print_invoice',  array( $this, 'handle_print_invoice' ) );
 
-		// Public share link (no login required)
+		// Public share link (no login required) — pretty URL (front end) and
+		// the legacy admin-post.php query-string URL (already-sent links).
+		add_action( 'template_redirect', array( $this, 'maybe_render_shared_invoice' ) );
 		add_action( 'admin_post_wp_im_view_shared_invoice',        array( $this, 'handle_view_shared_invoice' ) );
 		add_action( 'admin_post_nopriv_wp_im_view_shared_invoice', array( $this, 'handle_view_shared_invoice' ) );
 		add_action( 'admin_post_wp_im_regenerate_share_link',      array( $this, 'handle_regenerate_share_link' ) );
@@ -263,12 +265,7 @@ class WP_IM_Admin {
 		if ( $post_id ) {
 			$invoice = WP_IM_Invoice::get( $post_id );
 			if ( $invoice ) {
-				$token     = WP_IM_Invoice::get_or_create_share_token( $post_id );
-				$share_url = add_query_arg( array(
-					'action'     => 'wp_im_view_shared_invoice',
-					'invoice_id' => $post_id,
-					'token'      => $token,
-				), admin_url( 'admin-post.php' ) );
+				$share_url = WP_IM_Invoice::get_share_url( $post_id );
 			}
 		} elseif ( ! empty( $_GET['customer_id'] ) ) {
 			// Arrived via a customer's "New Invoice" quick-link — prefill client details.
@@ -363,12 +360,7 @@ class WP_IM_Admin {
 		// Mark as sent
 		update_post_meta( $post_id, WP_IM_Invoice::META_STATUS, 'sent' );
 
-		$token     = WP_IM_Invoice::get_or_create_share_token( $post_id );
-		$share_url = add_query_arg( array(
-			'action'     => 'wp_im_view_shared_invoice',
-			'invoice_id' => $post_id,
-			'token'      => $token,
-		), admin_url( 'admin-post.php' ) );
+		$share_url = WP_IM_Invoice::get_share_url( $post_id );
 
 		$subject = sprintf(
 			/* translators: %s: Invoice number */
@@ -493,17 +485,69 @@ class WP_IM_Admin {
 		$invoice = WP_IM_Invoice::get( $post_id );
 
 		if ( ! $invoice || empty( $invoice['share_token'] ) || ! hash_equals( $invoice['share_token'], $token ) ) {
-			wp_die(
-				esc_html__( 'This invoice link is invalid or no longer active.', 'wp-invoice-manager' ),
-				esc_html__( 'Link not found', 'wp-invoice-manager' ),
-				array( 'response' => 404 )
-			);
+			$this->die_invalid_share_link();
 		}
 
-		WP_IM_Invoice::record_share_view( $post_id );
+		$this->render_shared_invoice( $invoice );
+	}
 
+	/**
+	 * Pretty-URL ("/invoice/{token}/" and "/invoice/{token}/pay/") front-end
+	 * route — resolves the same share/pay views as the admin-post.php
+	 * handlers above (kept working for already-sent links using the old
+	 * query-string format), but via the rewrite rule in WP_IM_Post_Type.
+	 */
+	public function maybe_render_shared_invoice() {
+		$token = get_query_var( 'wim_token' );
+		if ( '' === $token || false === $token ) {
+			return;
+		}
+
+		$invoice = WP_IM_Invoice::get_by_share_token( $token );
+		if ( ! $invoice || ! hash_equals( $invoice['share_token'], $token ) ) {
+			$this->die_invalid_share_link();
+		}
+
+		if ( get_query_var( 'wim_pay' ) ) {
+			$this->render_pay_now_page( $invoice );
+		}
+
+		$this->render_shared_invoice( $invoice );
+	}
+
+	/**
+	 * Render the public share view and exit. Shared by both the pretty-URL
+	 * route and the legacy admin-post.php query-string route.
+	 *
+	 * @param array $invoice
+	 */
+	private function render_shared_invoice( array $invoice ) {
+		WP_IM_Invoice::record_share_view( $invoice['post_id'] );
 		$generator = new WP_IM_PDF_Generator( $invoice, true );
-		$generator->render_html();
+		$generator->render_html(); // exits
+	}
+
+	/**
+	 * Render the "Pay Now — not set up yet" page and exit. Shared by both
+	 * the pretty-URL route and the legacy admin-post.php query-string route.
+	 *
+	 * @param array $invoice
+	 */
+	private function render_pay_now_page( array $invoice ) {
+		include WP_IM_PLUGIN_DIR . 'templates/pay-now-not-configured.php';
+		exit;
+	}
+
+	/**
+	 * wp_die() for an invalid/mismatched share token — used by every public
+	 * share/pay route.
+	 */
+	private function die_invalid_share_link() {
+		wp_die(
+			esc_html__( 'This invoice link is invalid or no longer active.', 'wp-invoice-manager' ),
+			esc_html__( 'Link not found', 'wp-invoice-manager' ),
+			array( 'response' => 404 )
+		);
 	}
 
 	public function handle_regenerate_share_link() {
@@ -747,15 +791,10 @@ class WP_IM_Admin {
 		$invoice = WP_IM_Invoice::get( $post_id );
 
 		if ( ! $invoice || empty( $invoice['share_token'] ) || ! hash_equals( $invoice['share_token'], $token ) ) {
-			wp_die(
-				esc_html__( 'This invoice link is invalid or no longer active.', 'wp-invoice-manager' ),
-				esc_html__( 'Link not found', 'wp-invoice-manager' ),
-				array( 'response' => 404 )
-			);
+			$this->die_invalid_share_link();
 		}
 
-		include WP_IM_PLUGIN_DIR . 'templates/pay-now-not-configured.php';
-		exit;
+		$this->render_pay_now_page( $invoice );
 	}
 
 	// ── AJAX ─────────────────────────────────────────────────────────────────

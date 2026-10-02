@@ -4,7 +4,7 @@ Tags:              invoice, billing, payment, PDF, client management
 Requires at least: 5.8
 Tested up to:      6.5
 Requires PHP:      7.4
-Stable tag:        1.5.3
+Stable tag:        1.6.0
 License:           GPLv2 or later
 License URI:       https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -78,6 +78,21 @@ Invoice meta is stored as WordPress post meta on the `wp_invoice` custom post ty
 Yes – all strings use `__()` / `_e()` with the `wp-invoice-manager` text domain.
 
 == Changelog ==
+
+= 1.6.0 =
+* New: the public invoice share link is now a pretty front-end URL —
+  `https://yoursite.com/invoice/{token}/` — instead of exposing
+  `/wp-admin/admin-post.php?action=...&invoice_id=...&token=...`. The "Pay
+  Now" link follows the same pattern: `.../invoice/{token}/pay/`. Already-sent
+  links using the old admin-post.php format keep working — nothing breaks for
+  invoices already emailed to clients.
+* Fix: the printed/shared invoice page wasn't responsive on phones — fixed
+  desktop padding and side-by-side layouts (header, status bar, "From"/"Bill
+  To", the line-items table) overflowed the viewport and got clipped. The
+  header and status bar now stack/wrap on narrow screens, "From"/"Bill To"
+  stack vertically, long text (e.g. a URL in a line-item description) wraps
+  instead of forcing overflow, and the items table scrolls horizontally
+  within its own bounded area rather than breaking the whole page.
 
 = 1.5.3 =
 * Fix: the printed/shared invoice header showed the biller email directly under the logo
