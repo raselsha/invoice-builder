@@ -1,0 +1,197 @@
+/* WP Invoice Manager — standalone online-payment page (invoice + payment link). Mobile first. */
+:root {
+	--wim-pay-primary: #e94560;
+	--wim-pay-ink: #0E0C1A;
+	--wim-pay-text: #4A4860;
+	--wim-pay-muted: #7B78A0;
+	--wim-pay-border: #E4E1F7;
+	--wim-pay-bg: #F7F6FF;
+	--wim-pay-ok: #17803D;
+	--wim-pay-danger: #B42318;
+	--wim-pay-radius: 18px;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body.wim-pay {
+	margin: 0;
+	min-height: 100vh;
+	font-family: Inter, Roboto, -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans Bengali", Helvetica, Arial, sans-serif;
+	font-size: 16px;
+	line-height: 1.55;
+	color: var(--wim-pay-text);
+	background:
+		radial-gradient(60rem 30rem at 50% -10rem, color-mix(in srgb, var(--wim-pay-primary) 14%, transparent), transparent 70%),
+		var(--wim-pay-bg);
+}
+
+.wim-pay-test {
+	padding: 8px 16px;
+	background: #FFF4D6;
+	border-bottom: 1px solid #F3D78A;
+	color: #7A5300;
+	font-size: 0.85rem;
+	font-weight: 600;
+	text-align: center;
+}
+
+.wim-pay-wrap { width: 100%; max-width: 520px; margin: 0 auto; padding: 32px 16px 40px; }
+
+.wim-pay-brand { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 22px; text-decoration: none; color: var(--wim-pay-ink); font-weight: 800; font-size: 1.25rem; }
+.wim-pay-brand img { display: block; max-height: 40px; width: auto; }
+.wim-pay-brand .wim-pay-brand__icon { width: 32px; height: 32px; border-radius: 8px; }
+
+.wim-pay-card {
+	background: #fff;
+	border: 1px solid var(--wim-pay-border);
+	border-radius: var(--wim-pay-radius);
+	box-shadow: 0 24px 60px rgba(14, 12, 26, 0.08);
+	padding: 26px 20px;
+}
+
+.wim-pay-head { margin-bottom: 20px; }
+.wim-pay-eyebrow { display: inline-block; margin-bottom: 8px; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--wim-pay-primary); }
+.wim-pay-head h1, .wim-pay-state h1 { margin: 0; font-size: 1.45rem; line-height: 1.25; color: var(--wim-pay-ink); letter-spacing: -0.01em; }
+.wim-pay-desc { margin-top: 10px; color: var(--wim-pay-text); font-size: 0.95rem; }
+.wim-pay-desc p { margin: 0 0 8px; }
+.wim-pay-desc p:last-child { margin-bottom: 0; }
+
+.wim-pay-notice { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 18px; padding: 12px 14px; border-radius: 12px; font-size: 0.92rem; }
+.wim-pay-notice svg { flex: none; margin-top: 1px; }
+.wim-pay-notice ul { margin: 0; padding: 0; list-style: none; }
+.wim-pay-notice.is-info { background: #EEF2FF; color: #2B3A8C; }
+.wim-pay-notice.is-error { background: #FDF1F0; color: #7A1A12; }
+
+.wim-pay-form { display: grid; gap: 16px; }
+.wim-pay-field { margin: 0; padding: 0; border: 0; min-width: 0; }
+.wim-pay-label { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; padding: 0; font-size: 0.88rem; font-weight: 600; color: var(--wim-pay-ink); }
+.wim-pay-optional { font-weight: 500; color: var(--wim-pay-muted); font-size: 0.8rem; }
+.wim-pay-hint { margin: 7px 0 0; font-size: 0.82rem; color: var(--wim-pay-muted); }
+
+.wim-pay-input {
+	display: block;
+	width: 100%;
+	min-height: 48px;
+	padding: 11px 14px;
+	border: 1px solid #D9D6EC;
+	border-radius: 12px;
+	background: #fff;
+	color: var(--wim-pay-ink);
+	font: inherit;
+	transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+textarea.wim-pay-input { resize: vertical; min-height: 70px; }
+.wim-pay-input:focus, .wim-pay-money:focus-within { outline: none; border-color: var(--wim-pay-primary); box-shadow: 0 0 0 4px color-mix(in srgb, var(--wim-pay-primary) 15%, transparent); }
+
+.wim-pay-grid { display: grid; gap: 16px; }
+
+/* Fixed amount */
+.wim-pay-fixed { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 18px; border-radius: 14px; background: var(--wim-pay-bg); border: 1px solid var(--wim-pay-border); }
+.wim-pay-fixed span { font-size: 0.9rem; font-weight: 600; color: var(--wim-pay-text); }
+.wim-pay-fixed strong { font-size: 1.7rem; line-height: 1.1; color: var(--wim-pay-ink); letter-spacing: -0.02em; }
+
+/* Preset amounts */
+.wim-pay-chips { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 10px; }
+.wim-pay-chip { position: relative; cursor: pointer; }
+.wim-pay-chip input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.wim-pay-chip span {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 52px;
+	padding: 8px 10px;
+	border: 1.5px solid #D9D6EC;
+	border-radius: 12px;
+	font-weight: 700;
+	font-size: 1.05rem;
+	color: var(--wim-pay-ink);
+	transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+.wim-pay-chip:hover span { border-color: var(--wim-pay-primary); }
+.wim-pay-chip input:checked + span { border-color: var(--wim-pay-primary); background: var(--wim-pay-primary); color: #fff; }
+.wim-pay-chip input:focus-visible + span { box-shadow: 0 0 0 4px color-mix(in srgb, var(--wim-pay-primary) 25%, transparent); }
+
+/* Typed amount */
+.wim-pay-money { display: flex; align-items: center; margin-top: 10px; border: 1px solid #D9D6EC; border-radius: 12px; background: #fff; overflow: hidden; transition: border-color 0.15s ease, box-shadow 0.15s ease; }
+.wim-pay-money[hidden] { display: none; }
+.wim-pay-field > .wim-pay-money:first-of-type { margin-top: 0; }
+.wim-pay-money__symbol { padding-left: 14px; font-weight: 700; color: var(--wim-pay-ink); }
+.wim-pay-money input { flex: 1; min-width: 0; min-height: 48px; padding: 10px 8px; border: 0; background: transparent; font: inherit; font-weight: 700; font-size: 1.1rem; color: var(--wim-pay-ink); }
+.wim-pay-money input:focus { outline: none; }
+.wim-pay-money__code { padding: 0 14px; font-size: 0.8rem; font-weight: 700; color: var(--wim-pay-muted); }
+.wim-pay-money.is-lg input { min-height: 58px; font-size: 1.5rem; }
+.wim-pay-money.is-lg .wim-pay-money__symbol { font-size: 1.5rem; }
+
+/* Buttons */
+.wim-pay-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 10px;
+	width: 100%;
+	min-height: 54px;
+	padding: 12px 20px;
+	border: 0;
+	border-radius: 14px;
+	font: inherit;
+	font-weight: 700;
+	font-size: 1.05rem;
+	text-decoration: none;
+	cursor: pointer;
+	transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+.wim-pay-btn--pay { margin-top: 4px; background: var(--wim-pay-primary); color: #fff; box-shadow: 0 12px 24px color-mix(in srgb, var(--wim-pay-primary) 30%, transparent); }
+.wim-pay-btn--pay:hover { transform: translateY(-1px); box-shadow: 0 16px 30px color-mix(in srgb, var(--wim-pay-primary) 36%, transparent); }
+.wim-pay-btn--pay:disabled { opacity: 0.75; cursor: wait; transform: none; }
+.wim-pay-btn--ghost { margin-top: 18px; gap: 8px; background: var(--wim-pay-bg); color: var(--wim-pay-ink); border: 1px solid var(--wim-pay-border); }
+.wim-pay-btn--ghost:hover { border-color: var(--wim-pay-primary); }
+
+.wim-pay-secure { margin: 0; text-align: center; font-size: 0.8rem; color: var(--wim-pay-muted); }
+
+/* States: missing / closed / paid / processing */
+.wim-pay-state { text-align: center; padding: 10px 4px 4px; }
+.wim-pay-state p { margin: 10px 0 0; }
+.wim-pay-state__icon { display: inline-flex; align-items: center; justify-content: center; width: 64px; height: 64px; margin-bottom: 16px; border-radius: 50%; }
+.wim-pay-state__icon svg { width: 30px; height: 30px; }
+.wim-pay-state__icon.is-ok { background: #E7F6EC; color: var(--wim-pay-ok); }
+.wim-pay-state__icon.is-pop { animation: wim-pay-pop 0.5s cubic-bezier(.2, 1.4, .4, 1) both; }
+.wim-pay-state__icon.is-warn { background: #FDF1F0; color: var(--wim-pay-danger); }
+.wim-pay-state__icon.is-muted { background: var(--wim-pay-bg); color: var(--wim-pay-muted); }
+.wim-pay-state__amount { font-size: 2rem; font-weight: 800; color: var(--wim-pay-ink); letter-spacing: -0.02em; margin-top: 6px !important; }
+
+@keyframes wim-pay-pop { from { transform: scale(0.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+.wim-pay-receipt { margin: 22px 0 0; border: 1px solid var(--wim-pay-border); border-radius: 14px; }
+.wim-pay-receipt > div { display: flex; justify-content: space-between; gap: 16px; padding: 11px 16px; border-bottom: 1px solid var(--wim-pay-border); font-size: 0.92rem; }
+.wim-pay-receipt > div:last-child { border-bottom: 0; }
+.wim-pay-receipt dt { color: var(--wim-pay-muted); }
+.wim-pay-receipt dd { margin: 0; font-weight: 600; color: var(--wim-pay-ink); text-align: right; overflow-wrap: anywhere; }
+
+.wim-pay-foot { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 18px; margin-top: 20px; font-size: 0.82rem; color: var(--wim-pay-muted); text-align: center; }
+.wim-pay-foot a { color: inherit; }
+.wim-pay-foot__stripe { display: inline-flex; align-items: center; gap: 6px; }
+.wim-pay-foot__stripe svg { width: 14px; height: 14px; }
+
+@media (min-width: 560px) {
+	.wim-pay-wrap { padding-top: 56px; }
+	.wim-pay-card { padding: 34px 32px; }
+	.wim-pay-grid { grid-template-columns: 1fr 1fr; }
+	.wim-pay-head h1, .wim-pay-state h1 { font-size: 1.6rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.wim-pay-state__icon.is-pop { animation: none; }
+}
+
+/* Invoice summary */
+.wim-pay-summary { margin: 0; border: 1px solid var(--wim-pay-border); border-radius: 14px; background: var(--wim-pay-bg); }
+.wim-pay-summary > div { display: flex; justify-content: space-between; gap: 16px; padding: 11px 16px; border-bottom: 1px solid var(--wim-pay-border); font-size: 0.93rem; }
+.wim-pay-summary > div:last-child { border-bottom: 0; }
+.wim-pay-summary dt { color: var(--wim-pay-text); }
+.wim-pay-summary dd { margin: 0; font-weight: 600; color: var(--wim-pay-ink); }
+.wim-pay-summary .is-total dt { font-weight: 700; color: var(--wim-pay-ink); }
+.wim-pay-summary .is-total dd { font-size: 1.35rem; font-weight: 800; letter-spacing: -0.02em; }
+.wim-pay-desc a { color: var(--wim-pay-primary); font-weight: 600; }
+.wim-pay-state .wim-pay-btn--ghost { margin-top: 22px; }

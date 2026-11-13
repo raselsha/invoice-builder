@@ -414,7 +414,7 @@
 			</div>
 		</div>
 
-		<?php if ( $is_public && $totals['balance'] > 0 ) :
+		<?php if ( $is_public && WP_IM_Stripe::is_ready() && WP_IM_Online_Payments::invoice_payable( $invoice ) ) :
 			$pay_now_url = WP_IM_Invoice::get_pay_now_url( $invoice['post_id'] );
 		?>
 		<div class="pay-now-wrap no-print" style="text-align:right;margin:-16px 0 28px">

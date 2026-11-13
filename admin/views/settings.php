@@ -298,15 +298,124 @@ $color_themes = array(
 
 		</div><!-- .wim-form-wrap (branding) -->
 
-		<div class="wim-form-wrap" style="margin-top:24px">
+		<?php
+		$wim_stripe_mode    = WP_IM_Stripe::mode();
+		$wim_stripe_source  = WP_IM_Stripe::key_source( $wim_stripe_mode );
+		$wim_stripe_hook    = WP_IM_Stripe::webhook( $wim_stripe_mode );
+		$wim_stripe_account = get_transient( 'wim_stripe_account_' . $wim_stripe_mode );
+		$wim_stripe_modes   = array(
+			'auto' => WP_IM_Stripe::edd_available()
+				/* translators: %s: Test or Live */
+				? sprintf( __( 'Same as the store (now: %s)', 'wp-invoice-manager' ), function_exists( 'edd_is_test_mode' ) && edd_is_test_mode() ? __( 'Test', 'wp-invoice-manager' ) : __( 'Live', 'wp-invoice-manager' ) )
+				: __( 'Live', 'wp-invoice-manager' ),
+			'test' => __( 'Test — no real money', 'wp-invoice-manager' ),
+			'live' => __( 'Live — real payments', 'wp-invoice-manager' ),
+		);
+		$wim_msg = sanitize_key( $_GET['message'] ?? '' );
+		?>
+		<div class="wim-form-wrap" style="margin-top:24px" id="wim-online-payments">
 
 			<div class="wim-section">
 				<h3 class="wim-section-title">
 					<span class="dashicons dashicons-money-alt"></span>
-					<?php esc_html_e( 'Payment Gateway — "Pay Now" (Coming Soon)', 'wp-invoice-manager' ); ?>
+					<?php esc_html_e( 'Online Payments — Stripe', 'wp-invoice-manager' ); ?>
 				</h3>
 				<p class="wim-field-hint">
-					<?php esc_html_e( 'These fields save your credentials for a future online-payment integration. A "Pay Now" button already appears on shared invoices with a balance due, but it currently shows a "not set up yet" page — no live payment is processed until this is fully wired up.', 'wp-invoice-manager' ); ?>
+					<?php esc_html_e( 'Customers pay invoices and payment links by card (plus Apple Pay / Google Pay) on Stripe’s secure checkout. Payments are added to the invoice automatically and both of you get an email.', 'wp-invoice-manager' ); ?>
+				</p>
+
+				<?php if ( 'stripe_webhook' === $wim_msg ) : ?>
+					<div class="wim-notice wim-notice-success"><?php esc_html_e( '✓ Webhook created — Stripe will now tell this site about every payment, even if the customer closes the page early.', 'wp-invoice-manager' ); ?></div>
+				<?php elseif ( 'stripe_connected' === $wim_msg ) : ?>
+					<div class="wim-notice wim-notice-success"><?php esc_html_e( '✓ Connected to Stripe.', 'wp-invoice-manager' ); ?></div>
+				<?php elseif ( 'stripe_error' === $wim_msg ) : ?>
+					<div class="wim-notice wim-notice-error"><?php echo esc_html( (string) get_transient( 'wim_stripe_error' ) ); ?></div>
+				<?php endif; ?>
+
+				<div class="wim-online-status">
+					<span class="wim-badge wim-badge-<?php echo esc_attr( $wim_stripe_mode ); ?>"><?php echo esc_html( 'test' === $wim_stripe_mode ? __( 'Test mode', 'wp-invoice-manager' ) : __( 'Live mode', 'wp-invoice-manager' ) ); ?></span>
+					<span>
+						<?php
+						if ( 'edd' === $wim_stripe_source ) {
+							esc_html_e( 'Using the Stripe account connected to Easy Digital Downloads.', 'wp-invoice-manager' );
+						} elseif ( 'own' === $wim_stripe_source ) {
+							esc_html_e( 'Using the secret key saved below.', 'wp-invoice-manager' );
+						} else {
+							esc_html_e( 'No Stripe key for this mode yet — paste one below.', 'wp-invoice-manager' );
+						}
+						?>
+					</span>
+					<?php if ( $wim_stripe_account ) : ?>
+						<span><strong><?php echo esc_html( $wim_stripe_account['name'] ? $wim_stripe_account['name'] : $wim_stripe_account['id'] ); ?></strong>
+						<small style="color:var(--wim-muted)"><?php echo esc_html( trim( $wim_stripe_account['id'] . ' · ' . $wim_stripe_account['country'] . ' · ' . $wim_stripe_account['currency'], ' ·' ) ); ?></small></span>
+						<span class="wim-badge <?php echo $wim_stripe_account['charges'] ? 'wim-badge-paid' : 'wim-badge-overdue'; ?>"><?php echo esc_html( $wim_stripe_account['charges'] ? __( 'Can take payments', 'wp-invoice-manager' ) : __( 'Payments not enabled', 'wp-invoice-manager' ) ); ?></span>
+					<?php endif; ?>
+				</div>
+
+				<div class="wim-field">
+					<label class="wim-checkbox-label">
+						<input type="checkbox" name="stripe_enabled" value="1" <?php checked( WP_IM_Stripe::enabled() ); ?>>
+						<?php esc_html_e( 'Take payments online with Stripe ("Pay Now" on invoices, and payment links)', 'wp-invoice-manager' ); ?>
+					</label>
+				</div>
+
+				<div class="wim-form-grid">
+					<div class="wim-field">
+						<label><?php esc_html_e( 'Payments run in', 'wp-invoice-manager' ); ?></label>
+						<?php wim_render_select( 'stripe_mode', $wim_stripe_modes, get_option( WP_IM_Stripe::OPT_MODE, 'auto' ) ); ?>
+					</div>
+					<div class="wim-field">
+						<label><?php esc_html_e( 'Send payment notices to', 'wp-invoice-manager' ); ?></label>
+						<input type="email" name="payment_notify_email" value="<?php echo esc_attr( get_option( WP_IM_Stripe::OPT_NOTIFY, '' ) ); ?>" placeholder="<?php echo esc_attr( get_option( 'wp_im_company_email', get_option( 'admin_email' ) ) ); ?>">
+					</div>
+				</div>
+
+				<?php if ( $wim_stripe_source ) : ?>
+				<div class="wim-online-actions">
+					<a class="wim-btn wim-btn-secondary" href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=wp_im_stripe_check' ), 'wp_im_stripe_check' ) ); ?>">
+						<span class="dashicons dashicons-yes-alt"></span><?php esc_html_e( 'Check connection', 'wp-invoice-manager' ); ?>
+					</a>
+					<a class="wim-btn <?php echo empty( $wim_stripe_hook['id'] ) ? 'wim-btn-primary' : 'wim-btn-secondary'; ?>" href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=wp_im_stripe_webhook' ), 'wp_im_stripe_webhook' ) ); ?>">
+						<span class="dashicons dashicons-rss"></span><?php echo esc_html( empty( $wim_stripe_hook['id'] ) ? __( 'Set up webhook', 'wp-invoice-manager' ) : __( 'Recreate webhook', 'wp-invoice-manager' ) ); ?>
+					</a>
+					<span class="wim-field-hint" style="align-self:center;margin:0">
+						<?php
+						echo esc_html( empty( $wim_stripe_hook['id'] )
+							? __( 'Webhook not set up — recommended, so payments are recorded even if the customer closes the tab.', 'wp-invoice-manager' )
+							: __( 'Webhook is set up for this mode.', 'wp-invoice-manager' ) );
+						?>
+					</span>
+				</div>
+				<?php endif; ?>
+
+				<details class="wim-online-keys" <?php echo ( get_option( WP_IM_Stripe::OPT_TEST_SECRET ) || get_option( WP_IM_Stripe::OPT_LIVE_SECRET ) || ! WP_IM_Stripe::edd_available() ) ? 'open' : ''; ?>>
+					<summary><?php esc_html_e( 'Stripe secret keys', 'wp-invoice-manager' ); ?></summary>
+					<p class="wim-field-hint">
+						<?php echo esc_html( WP_IM_Stripe::edd_available()
+							? __( 'Optional — leave empty to use the Stripe account already connected to Easy Digital Downloads.', 'wp-invoice-manager' )
+							: __( 'From your Stripe Dashboard → Developers → API keys. A restricted key needs write access to Checkout Sessions and Webhook Endpoints, and read access to the Account.', 'wp-invoice-manager' ) ); ?>
+					</p>
+					<div class="wim-form-grid">
+						<?php foreach ( array( 'test' => array( __( 'Test secret key', 'wp-invoice-manager' ), WP_IM_Stripe::OPT_TEST_SECRET ), 'live' => array( __( 'Live secret key', 'wp-invoice-manager' ), WP_IM_Stripe::OPT_LIVE_SECRET ) ) as $wim_key_mode => $wim_key ) : ?>
+							<div class="wim-field">
+								<label><?php echo esc_html( $wim_key[0] ); ?></label>
+								<input type="password" name="stripe_<?php echo esc_attr( $wim_key_mode ); ?>_secret" autocomplete="off" placeholder="<?php echo esc_attr( get_option( $wim_key[1] ) ? __( 'Saved — type a new key to replace it', 'wp-invoice-manager' ) : ( 'test' === $wim_key_mode ? 'sk_test_…' : 'sk_live_…' ) ); ?>">
+								<?php if ( get_option( $wim_key[1] ) ) : ?>
+									<label class="wim-checkbox-label" style="margin-top:6px"><input type="checkbox" name="stripe_clear_<?php echo esc_attr( $wim_key_mode ); ?>" value="1"> <?php esc_html_e( 'Remove saved key', 'wp-invoice-manager' ); ?></label>
+								<?php endif; ?>
+							</div>
+						<?php endforeach; ?>
+					</div>
+				</details>
+			</div>
+
+			<div class="wim-section">
+				<h3 class="wim-section-title">
+					<span class="dashicons dashicons-smartphone"></span>
+					<?php esc_html_e( 'bKash & SSLCommerz (coming later)', 'wp-invoice-manager' ); ?>
+				</h3>
+				<p class="wim-field-hint">
+					<?php esc_html_e( 'These credentials are saved for a future integration — they are not used for payments yet.', 'wp-invoice-manager' ); ?>
 				</p>
 
 				<div class="wim-color-pair">

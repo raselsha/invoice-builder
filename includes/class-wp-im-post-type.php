@@ -21,13 +21,15 @@ class WP_IM_Post_Type {
 		$this->register_post_type();
 		$this->register_customer_post_type();
 		$this->register_status_taxonomy();
+		WP_IM_Payment_Link::register_post_type();
 		$this->register_share_rewrite_rules();
 	}
 
 	/**
-	 * Pretty public URLs for the share link ("/invoice/{token}/") and the
+	 * Pretty public URLs for the share link ("/invoice/{token}/"), the
 	 * Pay Now page ("/invoice/{token}/pay/") — resolved in
-	 * WP_IM_Admin::maybe_render_shared_invoice() on template_redirect.
+	 * WP_IM_Admin::maybe_render_shared_invoice() on template_redirect — and
+	 * payment links ("/pay/{token}/", WP_IM_Online_Payments::route_link()).
 	 *
 	 * Self-heals on a version bump: this plugin is often deployed by syncing
 	 * files directly (no activation hook fires), so a stale/missing rewrite
@@ -38,12 +40,14 @@ class WP_IM_Post_Type {
 		add_filter( 'query_vars', function ( $vars ) {
 			$vars[] = 'wim_token';
 			$vars[] = 'wim_pay';
+			$vars[] = 'wim_link';
 			return $vars;
 		} );
 
 		add_rewrite_tag( '%wim_token%', '([^&/]+)' );
 		add_rewrite_rule( '^invoice/([^/]+)/pay/?$', 'index.php?wim_token=$matches[1]&wim_pay=1', 'top' );
 		add_rewrite_rule( '^invoice/([^/]+)/?$', 'index.php?wim_token=$matches[1]', 'top' );
+		add_rewrite_rule( '^pay/([a-z0-9]{6,32})/?$', 'index.php?wim_link=$matches[1]', 'top' );
 
 		if ( get_option( 'wim_rewrite_version' ) !== WP_IM_VERSION ) {
 			flush_rewrite_rules( false );

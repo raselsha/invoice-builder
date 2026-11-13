@@ -49,12 +49,16 @@ class WP_IM_Admin {
 		// Settings
 		add_action( 'admin_post_wp_im_save_settings', array( $this, 'handle_save_settings' ) );
 
+		// Payment links
+		add_action( 'admin_post_wp_im_save_payment_link',   array( $this, 'handle_save_payment_link' ) );
+		add_action( 'admin_post_wp_im_delete_payment_link', array( $this, 'handle_delete_payment_link' ) );
+
 		// Duplicate / bulk actions / export
 		add_action( 'admin_post_wp_im_duplicate_invoice', array( $this, 'handle_duplicate_invoice' ) );
 		add_action( 'admin_post_wp_im_bulk_action',       array( $this, 'handle_bulk_action' ) );
 		add_action( 'admin_post_wp_im_export_csv',        array( $this, 'handle_export_csv' ) );
 
-		// Pay Now — scaffold only, no live gateway calls (see handle_pay_now()).
+		// Pay Now (legacy query-string URL) — see handle_pay_now().
 		add_action( 'admin_post_wp_im_pay_now',        array( $this, 'handle_pay_now' ) );
 		add_action( 'admin_post_nopriv_wp_im_pay_now', array( $this, 'handle_pay_now' ) );
 
@@ -158,6 +162,15 @@ class WP_IM_Admin {
 
 		add_submenu_page(
 			'wp-invoice-manager',
+			__( 'Payment Links', 'wp-invoice-manager' ),
+			__( 'Payment Links', 'wp-invoice-manager' ),
+			'manage_options',
+			'wp-im-payment-links',
+			array( $this, 'page_payment_links' )
+		);
+
+		add_submenu_page(
+			'wp-invoice-manager',
 			__( 'Reports', 'wp-invoice-manager' ),
 			__( 'Reports', 'wp-invoice-manager' ),
 			'manage_options',
@@ -184,13 +197,14 @@ class WP_IM_Admin {
 			'invoices_page_wp-im-settings',
 			'invoices_page_wp-im-customers',
 			'invoices_page_wp-im-reports',
+			'invoices_page_wp-im-payment-links',
 		);
 
 		if ( ! in_array( $hook, $our_pages, true ) && ! isset( $_GET['page'] ) ) {
 			return;
 		}
 
-		$allowed_get_pages = array( 'wp-invoice-manager', 'wp-im-new-invoice', 'wp-im-settings', 'wp-im-customers', 'wp-im-reports' );
+		$allowed_get_pages = array( 'wp-invoice-manager', 'wp-im-new-invoice', 'wp-im-settings', 'wp-im-customers', 'wp-im-reports', 'wp-im-payment-links' );
 		if ( ! in_array( $_GET['page'] ?? '', $allowed_get_pages, true ) && ! in_array( $hook, $our_pages, true ) ) {
 			return;
 		}
@@ -225,6 +239,38 @@ class WP_IM_Admin {
 				'add_item'       => __( 'Add Item', 'wp-invoice-manager' ),
 			),
 		) );
+
+		if ( 'wp-im-payment-links' === ( $_GET['page'] ?? '' ) ) {
+			$links_js = WP_IM_PLUGIN_DIR . 'admin/js/payment-links.js';
+			wp_enqueue_script( 'wp-im-qrcode', WP_IM_PLUGIN_URL . 'admin/js/vendor/qrcode.js', array(), '1.4.4', true );
+			wp_enqueue_script(
+				'wp-im-payment-links',
+				WP_IM_PLUGIN_URL . 'admin/js/payment-links.js',
+				array( 'jquery', 'wp-im-qrcode' ),
+				file_exists( $links_js ) ? filemtime( $links_js ) : WP_IM_VERSION,
+				true
+			);
+			$symbols = array();
+			foreach ( array_keys( WP_IM_Invoice::get_currencies() ) as $code ) {
+				$symbols[ $code ] = WP_IM_Invoice::currency_symbol( $code );
+			}
+			wp_localize_script( 'wp-im-payment-links', 'WIM_LINKS', array(
+				'symbols' => $symbols,
+				'today'   => current_time( 'Y-m-d' ),
+				'months'  => array_values( array_map( static function ( $m ) {
+					return wp_date( 'F', mktime( 0, 0, 0, $m, 1, 2026 ) );
+				}, range( 1, 12 ) ) ),
+				'days'    => array_values( array_map( static function ( $d ) {
+					return wp_date( 'D', mktime( 0, 0, 0, 1, 4 + $d, 2026 ) ); // 2026-01-04 is a Sunday.
+				}, range( 0, 6 ) ) ),
+				'i18n'    => array(
+					'copied' => __( 'Copied!', 'wp-invoice-manager' ),
+					'noDate' => __( 'No end date', 'wp-invoice-manager' ),
+					'remove' => __( 'Remove', 'wp-invoice-manager' ),
+					'delete' => __( 'Delete this payment link? Payments already received stay in their invoices.', 'wp-invoice-manager' ),
+				),
+			) );
+		}
 	}
 
 	// ── Page renderers ────────────────────────────────────────────────────────
@@ -288,6 +334,13 @@ class WP_IM_Admin {
 		$top_clients     = WP_IM_Invoice::get_top_clients( 5 );
 		$aging           = WP_IM_Invoice::get_overdue_aging();
 		include WP_IM_PLUGIN_DIR . 'admin/views/reports.php';
+	}
+
+	public function page_payment_links() {
+		$link_id = absint( $_GET['link_id'] ?? 0 );
+		$editing = isset( $_GET['edit'] ) || $link_id;
+		$link    = $link_id ? WP_IM_Payment_Link::get( $link_id ) : null;
+		include WP_IM_PLUGIN_DIR . 'admin/views/payment-links.php';
 	}
 
 	public function page_customers() {
@@ -509,7 +562,7 @@ class WP_IM_Admin {
 		}
 
 		if ( get_query_var( 'wim_pay' ) ) {
-			$this->render_pay_now_page( $invoice );
+			WP_IM_Online_Payments::handle_invoice_pay( $invoice ); // exits
 		}
 
 		$this->render_shared_invoice( $invoice );
@@ -525,17 +578,6 @@ class WP_IM_Admin {
 		WP_IM_Invoice::record_share_view( $invoice['post_id'] );
 		$generator = new WP_IM_PDF_Generator( $invoice, true );
 		$generator->render_html(); // exits
-	}
-
-	/**
-	 * Render the "Pay Now — not set up yet" page and exit. Shared by both
-	 * the pretty-URL route and the legacy admin-post.php query-string route.
-	 *
-	 * @param array $invoice
-	 */
-	private function render_pay_now_page( array $invoice ) {
-		include WP_IM_PLUGIN_DIR . 'templates/pay-now-not-configured.php';
-		exit;
 	}
 
 	/**
@@ -593,9 +635,25 @@ class WP_IM_Admin {
 		update_option( 'wp_im_header_text_color', $this->sanitize_hex_color( $_POST['header_text_color'] ?? '', '#ffffff' ) );
 		update_option( 'wp_im_date_text_color',   $this->sanitize_hex_color( $_POST['date_text_color'] ?? '', '#ffffff' ) );
 
-		// Payment gateway credentials — scaffold only, stored for a future
-		// real bKash / SSLCommerz integration. No live API calls are made
-		// with these values yet (see handle_pay_now()).
+		// Online payments (Stripe). Secret keys: an empty field keeps the
+		// saved key, the "remove" checkbox clears it.
+		update_option( WP_IM_Stripe::OPT_ENABLED, ! empty( $_POST['stripe_enabled'] ) ? 1 : 0 );
+		$stripe_mode = sanitize_key( $_POST['stripe_mode'] ?? 'auto' );
+		update_option( WP_IM_Stripe::OPT_MODE, in_array( $stripe_mode, array( 'auto', 'test', 'live' ), true ) ? $stripe_mode : 'auto' );
+		update_option( WP_IM_Stripe::OPT_NOTIFY, sanitize_email( $_POST['payment_notify_email'] ?? '' ) );
+		foreach ( array( 'test' => WP_IM_Stripe::OPT_TEST_SECRET, 'live' => WP_IM_Stripe::OPT_LIVE_SECRET ) as $key_mode => $option ) {
+			if ( ! empty( $_POST[ 'stripe_clear_' . $key_mode ] ) ) {
+				update_option( $option, '', false );
+				continue;
+			}
+			$key = trim( sanitize_text_field( wp_unslash( $_POST[ 'stripe_' . $key_mode . '_secret' ] ?? '' ) ) );
+			if ( '' !== $key && in_array( substr( $key, 0, 8 ), array( 'sk_' . $key_mode . '_', 'rk_' . $key_mode . '_' ), true ) ) {
+				update_option( $option, $key, false );
+			}
+		}
+
+		// bKash / SSLCommerz — credentials stored for a future integration;
+		// no live API calls are made with these yet.
 		update_option( 'wp_im_bkash_enabled',          ! empty( $_POST['bkash_enabled'] ) ? 1 : 0 );
 		update_option( 'wp_im_bkash_api_key',          sanitize_text_field( $_POST['bkash_api_key'] ?? '' ) );
 		update_option( 'wp_im_bkash_api_secret',       sanitize_text_field( $_POST['bkash_api_secret'] ?? '' ) );
@@ -779,11 +837,8 @@ class WP_IM_Admin {
 	}
 
 	/**
-	 * Public "Pay Now" link on a shared invoice. This is a scaffold only:
-	 * Settings has fields ready for real bKash / SSLCommerz credentials, but
-	 * no live gateway API integration has been written yet, so every click
-	 * lands on an honest "online payment isn't set up yet" page rather than
-	 * pretending to process anything.
+	 * Legacy query-string "Pay Now" URL (admin-post.php?action=wp_im_pay_now)
+	 * from already-sent links: sends the customer to the pretty pay page.
 	 */
 	public function handle_pay_now() {
 		$post_id = absint( $_GET['invoice_id'] ?? 0 );
@@ -794,7 +849,47 @@ class WP_IM_Admin {
 			$this->die_invalid_share_link();
 		}
 
-		$this->render_pay_now_page( $invoice );
+		wp_safe_redirect( WP_IM_Invoice::get_pay_now_url( $post_id ) );
+		exit;
+	}
+
+	// ── Payment links ─────────────────────────────────────────────────────────
+
+	public function handle_save_payment_link() {
+		$this->verify_nonce( 'wp_im_payment_link', 'wp_im_payment_link_nonce' );
+		$this->check_capability();
+
+		$link_id = absint( $_POST['link_id'] ?? 0 );
+		$result  = WP_IM_Payment_Link::save( $link_id, $_POST );
+
+		if ( is_wp_error( $result ) ) {
+			set_transient( 'wim_link_error_' . get_current_user_id(), $result->get_error_message(), 60 );
+			wp_safe_redirect( add_query_arg( array( 'page' => 'wp-im-payment-links', 'edit' => 1, 'link_id' => $link_id ), admin_url( 'admin.php' ) ) );
+			exit;
+		}
+
+		$problem = WP_IM_Payment_Link::setup_problem( WP_IM_Payment_Link::get( $result ) );
+		if ( $problem ) {
+			set_transient( 'wim_link_error_' . get_current_user_id(), $problem, 60 );
+		}
+
+		wp_safe_redirect( add_query_arg( array(
+			'page'    => 'wp-im-payment-links',
+			'link_id' => $result,
+			'message' => $link_id ? 'link_updated' : 'link_created',
+		), admin_url( 'admin.php' ) ) );
+		exit;
+	}
+
+	public function handle_delete_payment_link() {
+		$link_id = absint( $_GET['link_id'] ?? 0 );
+		$this->verify_nonce( 'wp_im_delete_link_' . $link_id, 'wp_im_delete_link_nonce' );
+		$this->check_capability();
+
+		WP_IM_Payment_Link::delete( $link_id );
+
+		wp_safe_redirect( add_query_arg( array( 'page' => 'wp-im-payment-links', 'message' => 'link_deleted' ), admin_url( 'admin.php' ) ) );
+		exit;
 	}
 
 	// ── AJAX ─────────────────────────────────────────────────────────────────

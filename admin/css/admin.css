@@ -326,6 +326,7 @@
 .wim-field input[type="text"],
 .wim-field input[type="email"],
 .wim-field input[type="tel"],
+.wim-field input[type="password"],
 .wim-field input[type="date"],
 .wim-field input[type="number"],
 .wim-field select,
@@ -1258,3 +1259,107 @@
 .wim-logo-preview.is-empty .wim-logo-preview-empty { display: block; }
 .wim-logo-picker-controls { flex: 1; display: flex; flex-direction: column; gap: 10px; }
 .wim-logo-picker-buttons { display: flex; gap: 8px; }
+
+/* ==========================================================================
+   Payment Links (admin/views/payment-links.php)
+   ========================================================================== */
+.wim-pl *, .wim-pl *::before, .wim-pl *::after { box-sizing: border-box; }
+.wim-pl-muted { color: var(--wim-muted); font-weight: 400; }
+.wim-pl [hidden] { display: none !important; }
+
+.wim-pl-layout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 24px; align-items: start; }
+@media (max-width: 1100px) { .wim-pl-layout { grid-template-columns: 1fr; } }
+.wim-pl-side { display: grid; gap: 20px; }
+.wim-pl-side .wim-form-wrap { padding: 24px; }
+.wim-pl-side .wim-section-title { margin-bottom: 14px; }
+.wim-pl-row { margin-top: 18px; }
+
+.wim-pl-modes { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+.wim-pl-mode { position: relative; display: block; cursor: pointer; }
+.wim-pl-mode input { position: absolute; opacity: 0; pointer-events: none; }
+.wim-pl-mode__card { display: flex; flex-direction: column; gap: 4px; height: 100%; padding: 16px 18px; border: 1.5px solid var(--wim-border); border-radius: 10px; background: var(--wim-surface); transition: border-color .15s ease, box-shadow .15s ease, background .15s ease; }
+.wim-pl-mode__card .dashicons { color: var(--wim-muted); margin-bottom: 4px; }
+.wim-pl-mode__card strong { font-size: 14px; color: var(--wim-text); }
+.wim-pl-mode__card small { color: var(--wim-muted); font-size: 12.5px; line-height: 1.45; }
+.wim-pl-mode:hover .wim-pl-mode__card { border-color: #94a3b8; }
+.wim-pl-mode input:checked + .wim-pl-mode__card { border-color: var(--wim-accent); background: #fff5f7; box-shadow: 0 0 0 3px rgba(233, 69, 96, .12); }
+.wim-pl-mode input:checked + .wim-pl-mode__card .dashicons { color: var(--wim-accent); }
+.wim-pl-mode input:focus-visible + .wim-pl-mode__card { outline: 2px solid var(--wim-accent); outline-offset: 2px; }
+
+.wim-pl-money { display: flex; align-items: center; border: 1.5px solid var(--wim-border); border-radius: var(--wim-radius); background: var(--wim-surface); overflow: hidden; }
+.wim-pl-money:focus-within { border-color: var(--wim-accent); box-shadow: 0 0 0 3px rgba(233, 69, 96, .1); }
+.wim-pl-money > span { padding: 0 2px 0 12px; font-weight: 700; color: var(--wim-text); }
+.wim-pl .wim-pl-money input[type="text"] { flex: 1; min-width: 0; border: 0 !important; box-shadow: none !important; background: transparent; font-weight: 600; }
+.wim-pl-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+.wim-pl-chips:empty { display: none; }
+.wim-pl-chip { display: inline-flex; align-items: center; gap: 4px; padding: 5px 6px 5px 12px; border-radius: 999px; background: #fff1f3; color: #9f1239; font-weight: 700; }
+.wim-pl-chip button { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: inherit; font-size: 16px; line-height: 1; cursor: pointer; }
+.wim-pl-chip button:hover { background: rgba(159, 18, 57, .12); }
+.wim-pl-chips__add { max-width: 340px; }
+.wim-pl-chips__add .wim-btn { margin: 3px; padding: 6px 14px; }
+
+.wim-pl-toggle { position: relative; display: flex; align-items: flex-start; gap: 12px; margin-top: 16px; cursor: pointer; }
+.wim-pl-toggle input { position: absolute; opacity: 0; pointer-events: none; }
+.wim-pl-toggle__track { position: relative; flex: none; width: 38px; height: 22px; margin-top: 1px; border-radius: 999px; background: #cbd5e1; transition: background .15s ease; }
+.wim-pl-toggle__thumb { position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, .25); transition: transform .15s ease; }
+.wim-pl-toggle input:checked + .wim-pl-toggle__track { background: var(--wim-accent); }
+.wim-pl-toggle input:checked + .wim-pl-toggle__track .wim-pl-toggle__thumb { transform: translateX(16px); }
+.wim-pl-toggle input:focus-visible + .wim-pl-toggle__track { outline: 2px solid var(--wim-accent); outline-offset: 2px; }
+.wim-pl-toggle__text { display: flex; flex-direction: column; gap: 2px; }
+.wim-pl-toggle__text small { color: var(--wim-muted); }
+.wim-pl-used { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin-top: 16px; padding: 10px 14px; border-radius: var(--wim-radius); background: #ecfdf5; color: #065f46; }
+
+.wim-pl-date { display: flex; align-items: center; gap: 8px; }
+.wim-pl-date__trigger { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 8px 14px; border: 1.5px solid var(--wim-border); border-radius: var(--wim-radius); background: var(--wim-surface); color: var(--wim-text); font-size: 14px; cursor: pointer; }
+.wim-pl-date__trigger:hover { border-color: #94a3b8; }
+.wim-pl-date__trigger[aria-expanded="true"] { border-color: var(--wim-accent); box-shadow: 0 0 0 3px rgba(233, 69, 96, .1); }
+.wim-pl-date__trigger .dashicons { color: var(--wim-muted); font-size: 17px; width: 17px; height: 17px; }
+.wim-pl-date__clear { width: 30px; height: 30px; padding: 0; border: 0; border-radius: 50%; background: #f1f5f9; color: #475569; font-size: 18px; line-height: 1; cursor: pointer; }
+.wim-pl-cal { z-index: 100100; width: 284px; padding: 12px; background: var(--wim-surface); border: 1px solid var(--wim-border); border-radius: 12px; box-shadow: 0 16px 40px rgba(15, 23, 42, .16); }
+.wim-pl-cal__head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.wim-pl-cal__nav { width: 32px; height: 32px; padding: 0; border: 0; border-radius: 8px; background: transparent; font-size: 20px; line-height: 1; cursor: pointer; }
+.wim-pl-cal__nav:hover { background: #f1f5f9; }
+.wim-pl-cal__grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; text-align: center; }
+.wim-pl-cal__wd { padding: 4px 0; font-size: 11px; font-weight: 600; color: var(--wim-muted); }
+.wim-pl-cal__day { height: 34px; padding: 0; border: 0; border-radius: 8px; background: transparent; color: var(--wim-text); font-size: 13px; cursor: pointer; }
+.wim-pl-cal__day:hover:not(:disabled) { background: #fff1f3; }
+.wim-pl-cal__day:disabled { color: #cbd5e1; cursor: not-allowed; }
+.wim-pl-cal__day.is-today { font-weight: 700; box-shadow: inset 0 0 0 1px #fecdd3; }
+.wim-pl-cal__day.is-selected { background: var(--wim-accent); color: #fff; font-weight: 700; }
+
+.wim-pl-share { display: grid; gap: 12px; }
+.wim-pl-share .wim-badge { justify-self: start; }
+.wim-pl-share__url { width: 100%; font-size: 12px; }
+.wim-pl-share__actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.wim-pl-share__actions .wim-btn.is-copied { background: var(--wim-success); border-color: var(--wim-success); }
+.wim-pl-qr { display: flex; justify-content: center; padding: 10px; border: 1px solid var(--wim-border); border-radius: 10px; background: #fff; }
+.wim-pl-qr svg { width: 180px; height: 180px; }
+.wim-pl-qr__download { justify-content: center; }
+.wim-pl-received__total { margin: 0 0 12px; font-size: 22px; font-weight: 800; color: var(--wim-text); }
+.wim-pl-received__total small { font-size: 13px; font-weight: 500; color: var(--wim-muted); }
+.wim-pl-received__list { margin: 0; padding: 0; list-style: none; }
+.wim-pl-received__list li { display: flex; gap: 8px; align-items: baseline; padding: 8px 0; border-top: 1px solid var(--wim-border); font-size: 13px; }
+.wim-pl-received__list li span { flex: 1; min-width: 0; color: var(--wim-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wim-pl-help ol { margin: 0 0 0 18px; color: var(--wim-muted); line-height: 1.7; }
+
+.wim-pl-badge-active   { background: #ecfdf5; color: #065f46; }
+.wim-pl-badge-used     { background: #eff6ff; color: #1d4ed8; }
+.wim-pl-badge-expired, .wim-pl-badge-disabled { background: #fffbeb; color: #92400e; }
+.wim-icon-btn.is-copied { border-color: var(--wim-success); color: var(--wim-success); }
+
+.wim-pl-dialog { padding: 0; border: 0; border-radius: 14px; box-shadow: 0 24px 60px rgba(15, 23, 42, .25); }
+.wim-pl-dialog::backdrop { background: rgba(15, 23, 42, .45); }
+.wim-pl-dialog__body { position: relative; display: grid; gap: 12px; justify-items: center; padding: 24px 28px; min-width: 300px; }
+.wim-pl-dialog__body h2 { margin: 0; }
+.wim-pl-dialog__close { position: absolute; top: 10px; right: 10px; width: 32px; height: 32px; border: 0; border-radius: 50%; background: #f1f5f9; font-size: 20px; cursor: pointer; }
+.wim-pl-dialog__url { margin: 0; max-width: 320px; font-size: 12px; color: var(--wim-muted); word-break: break-all; text-align: center; }
+.wim-pl-dialog .wim-pl-qr svg { width: 240px; height: 240px; }
+
+/* Online payments (Settings) */
+.wim-online-status { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 12px 14px; margin-bottom: 16px; border-radius: var(--wim-radius); background: var(--wim-surface2); border: 1px solid var(--wim-border); }
+.wim-online-status .wim-badge { flex: none; }
+.wim-online-actions { display: flex; flex-wrap: wrap; gap: 10px; margin: 6px 0 18px; }
+.wim-online-keys { margin-top: 10px; }
+.wim-online-keys summary { cursor: pointer; font-weight: 600; padding: 6px 0; }
+.wim-badge-test { background: #fffbeb; color: #92400e; }
+.wim-badge-live { background: #ecfdf5; color: #065f46; }

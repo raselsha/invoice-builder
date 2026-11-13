@@ -133,6 +133,20 @@ $selected_terms = $is_edit
 							</div>
 						</div>
 					</div>
+					<div class="wim-field">
+						<label><?php esc_html_e( 'Online payment', 'wp-invoice-manager' ); ?></label>
+						<label class="wim-checkbox-label" style="margin-top:10px">
+							<input type="checkbox" name="allow_partial" value="1" <?php checked( $is_edit && ! empty( $invoice['allow_partial'] ) ); ?>>
+							<?php esc_html_e( 'Customer can pay part of it', 'wp-invoice-manager' ); ?>
+						</label>
+						<p class="wim-field-hint" style="margin-top:4px">
+							<?php
+							echo esc_html( WP_IM_Stripe::is_ready()
+								? __( 'e.g. a 50% advance. Otherwise "Pay Now" asks for the full balance.', 'wp-invoice-manager' )
+								: __( 'Turn on Stripe in Settings to show "Pay Now" on shared invoices.', 'wp-invoice-manager' ) );
+							?>
+						</p>
+					</div>
 				</div>
 			</div>
 
@@ -402,7 +416,12 @@ $selected_terms = $is_edit
 							<td><?php echo esc_html( $payment['date'] ); ?></td>
 							<td><strong><?php echo esc_html( $symbol . number_format( floatval( $payment['amount'] ), 2 ) ); ?></strong></td>
 							<td><?php echo esc_html( $payment_methods[ $payment['method'] ] ?? $payment['method'] ); ?></td>
-							<td><?php echo esc_html( $payment['note'] ); ?></td>
+							<td>
+								<?php echo esc_html( $payment['note'] ); ?>
+								<?php if ( ! empty( $payment['intent'] ) ) : ?>
+									<a href="<?php echo esc_url( WP_IM_Stripe::dashboard_url( $payment['intent'], $payment['mode'] ?? 'live' ) ); ?>" target="_blank" rel="noopener"><?php esc_html_e( 'Stripe ↗', 'wp-invoice-manager' ); ?></a>
+								<?php endif; ?>
+							</td>
 							<td>
 								<a href="<?php echo esc_url( $delete_payment_url ); ?>" class="wim-remove-row wim-delete-link" title="<?php esc_attr_e( 'Delete', 'wp-invoice-manager' ); ?>">
 									<span class="dashicons dashicons-trash"></span>

@@ -4,7 +4,7 @@ Tags:              invoice, billing, payment, PDF, client management
 Requires at least: 5.8
 Tested up to:      6.5
 Requires PHP:      7.4
-Stable tag:        1.6.0
+Stable tag:        1.7.0
 License:           GPLv2 or later
 License URI:       https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -78,6 +78,29 @@ Invoice meta is stored as WordPress post meta on the `wp_invoice` custom post ty
 Yes – all strings use `__()` / `_e()` with the `wp-invoice-manager` text domain.
 
 == Changelog ==
+
+= 1.7.0 =
+* New: online payments with Stripe. "Pay Now" on a shared invoice now opens
+  a real payment page (`/invoice/{token}/pay/`) that sends the customer to
+  Stripe Checkout (card, Apple Pay, Google Pay). The payment is added to the
+  invoice automatically, its status moves to Partially Paid / Paid, and both
+  the customer and you get a branded email. Uses the Stripe account already
+  connected to Easy Digital Downloads, or keys pasted in Settings.
+* New: per-invoice "Customer can pay part of it" option (e.g. a 50% advance);
+  otherwise Pay Now asks for the full balance. Pay Now only shows while there
+  is something to pay and online payments are switched on.
+* New: Payment Links (Invoices → Payment Links). A shareable `/pay/{token}/`
+  page for a fixed amount, a set of preset amounts (optionally plus "Other"),
+  or any amount the customer types (with optional min/max). Optional customer,
+  note field, end date, one-time links, on/off switch, copy link and QR code
+  (PNG download). Every payment creates a paid invoice, so all money stays in
+  one set of books.
+* New: Stripe webhook (`/wp-json/wim/v1/stripe-webhook`), set up with one click
+  in Settings, so payments are recorded even if the customer closes the tab.
+  Recording is idempotent — a payment is never added twice.
+* Settings: "Online Payments — Stripe" section (on/off, Test/Live, notice
+  email, connection check, webhook). bKash / SSLCommerz fields are kept for a
+  later integration.
 
 = 1.6.0 =
 * New: the public invoice share link is now a pretty front-end URL —

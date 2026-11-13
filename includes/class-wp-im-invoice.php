@@ -37,6 +37,7 @@ class WP_IM_Invoice {
 	const META_RECURRING_PARENT    = '_invoice_recurring_parent';
 	const META_SHARE_VIEWS         = '_invoice_share_views';
 	const META_LAST_REMINDER_SENT  = '_invoice_last_reminder_sent';
+	const META_ALLOW_PARTIAL       = '_invoice_allow_partial';
 
 	/** @var int */
 	private $post_id;
@@ -238,6 +239,7 @@ class WP_IM_Invoice {
 			self::META_RECURRING_FREQUENCY => ! empty( $data['is_recurring'] ) ? sanitize_text_field( $data['recurring_frequency'] ?? 'monthly' ) : '',
 			self::META_RECURRING_NEXT_DATE  => sanitize_text_field( $data['recurring_next_date'] ?? '' ),
 			self::META_RECURRING_END_DATE   => sanitize_text_field( $data['recurring_end_date'] ?? '' ),
+			self::META_ALLOW_PARTIAL        => ! empty( $data['allow_partial'] ) ? 1 : 0,
 		);
 
 		foreach ( $map as $key => $value ) {
@@ -359,7 +361,8 @@ class WP_IM_Invoice {
 	 * there's no distinction, just a running log) and auto-update its status.
 	 *
 	 * @param int   $post_id
-	 * @param array $data { amount, date, method, note }
+	 * @param array $data { amount, date, method, note } plus, for online
+	 *                    payments, session / intent / mode (Stripe references).
 	 * @return string|false New payment id, or false if the amount was invalid.
 	 */
 	public static function add_payment( $post_id, array $data ) {
@@ -377,6 +380,11 @@ class WP_IM_Invoice {
 			'method' => sanitize_text_field( $data['method'] ?? '' ),
 			'note'   => sanitize_text_field( $data['note'] ?? '' ),
 		);
+		foreach ( array( 'session', 'intent', 'mode' ) as $ref ) {
+			if ( ! empty( $data[ $ref ] ) ) {
+				$payment[ $ref ] = sanitize_text_field( $data[ $ref ] );
+			}
+		}
 
 		// Note: (array) cast on '' (no meta yet) would give array(0 => ''),
 		// a phantom non-array entry — check is_array() explicitly instead.
@@ -459,6 +467,7 @@ class WP_IM_Invoice {
 			'bkash' => __( 'bKash', 'wp-invoice-manager' ),
 			'cash'  => __( 'Cash', 'wp-invoice-manager' ),
 			'card'  => __( 'Card', 'wp-invoice-manager' ),
+			'stripe' => __( 'Card (online, Stripe)', 'wp-invoice-manager' ),
 			'other' => __( 'Other', 'wp-invoice-manager' ),
 		);
 	}
@@ -814,6 +823,7 @@ class WP_IM_Invoice {
 			'recurring_next_date' => get_post_meta( $this->post_id, self::META_RECURRING_NEXT_DATE, true ),
 			'recurring_end_date'  => get_post_meta( $this->post_id, self::META_RECURRING_END_DATE, true ),
 			'recurring_parent'    => get_post_meta( $this->post_id, self::META_RECURRING_PARENT, true ),
+			'allow_partial'       => (bool) get_post_meta( $this->post_id, self::META_ALLOW_PARTIAL, true ),
 			'items'          => $this->get_items(),
 			'payments'       => $this->get_payments(),
 			'totals'         => $this->calculate_totals(),

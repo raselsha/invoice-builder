@@ -3,7 +3,7 @@
  * Plugin Name:       WP Invoice Manager
  * Plugin URI:        https://github.com/your-repo/wp-invoice-manager
  * Description:       A professional OOP-based invoice management system for WordPress.
- * Version:           1.6.0
+ * Version:           1.7.0
  * Author:            Your Name
  * Author URI:        https://yourwebsite.com
  * License:           GPL-2.0+
@@ -19,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Define plugin constants
-define( 'WP_IM_VERSION', '1.6.0' );
+define( 'WP_IM_VERSION', '1.7.0' );
 define( 'WP_IM_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'WP_IM_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'WP_IM_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
@@ -66,6 +66,9 @@ final class WP_Invoice_Manager {
 		require_once WP_IM_PLUGIN_DIR . 'includes/class-wp-im-invoice.php';
 		require_once WP_IM_PLUGIN_DIR . 'includes/class-wp-im-customer.php';
 		require_once WP_IM_PLUGIN_DIR . 'includes/class-wp-im-pdf-generator.php';
+		require_once WP_IM_PLUGIN_DIR . 'includes/class-wp-im-stripe.php';
+		require_once WP_IM_PLUGIN_DIR . 'includes/class-wp-im-payment-link.php';
+		require_once WP_IM_PLUGIN_DIR . 'includes/class-wp-im-online-payments.php';
 		require_once WP_IM_PLUGIN_DIR . 'admin/class-wp-im-admin.php';
 		require_once WP_IM_PLUGIN_DIR . 'admin/view-helpers.php';
 	}
@@ -93,6 +96,8 @@ final class WP_Invoice_Manager {
 		// pretty invoice-share URL on the front end, not just wp-admin.
 		$admin = new WP_IM_Admin();
 		$admin->init();
+
+		WP_IM_Online_Payments::init();
 	}
 
 	/**
