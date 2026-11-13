@@ -125,6 +125,7 @@ $bulk_statuses = WP_IM_Invoice::get_statuses();
 					<th><?php esc_html_e( 'Due Date', 'wp-invoice-manager' ); ?></th>
 					<th><?php esc_html_e( 'Status', 'wp-invoice-manager' ); ?></th>
 					<th><?php esc_html_e( 'Amount', 'wp-invoice-manager' ); ?></th>
+					<th><?php esc_html_e( 'Plan', 'wp-invoice-manager' ); ?></th>
 					<th><?php esc_html_e( 'Actions', 'wp-invoice-manager' ); ?></th>
 				</tr>
 			</thead>
@@ -166,16 +167,24 @@ $bulk_statuses = WP_IM_Invoice::get_statuses();
 						'wp_im_duplicate_' . $post->ID,
 						'wp_im_duplicate_nonce'
 					);
+					// Recurring templates are marked by a tinted row (no icon in front
+					// of the number, so every invoice number stays aligned).
+					$is_recurring_row = ! empty( $inv['recurring_frequency'] );
+					$recurring_tip    = '';
+					if ( $is_recurring_row ) {
+						$recurring_labels = WP_IM_Invoice::get_recurring_frequencies();
+						$recurring_tip    = sprintf(
+							/* translators: 1: frequency (e.g. Yearly), 2: date of the next generated invoice */
+							__( 'Recurring invoice (%1$s) — next one on %2$s', 'wp-invoice-manager' ),
+							$recurring_labels[ $inv['recurring_frequency'] ] ?? $inv['recurring_frequency'],
+							$inv['recurring_next_date'] ? wp_date( get_option( 'date_format' ), strtotime( $inv['recurring_next_date'] . ' 12:00:00' ) ) : '—'
+						);
+					}
 				?>
-				<tr>
+				<tr<?php echo $is_recurring_row ? ' class="wim-row-recurring" title="' . esc_attr( $recurring_tip ) . '"' : ''; ?>>
 					<td class="col-check"><input type="checkbox" class="wim-row-check" name="invoice_ids[]" value="<?php echo esc_attr( $post->ID ); ?>"></td>
 					<td>
-						<span class="wim-invoice-number">
-							<?php if ( ! empty( $inv['recurring_frequency'] ) ) : ?>
-								<span class="dashicons dashicons-update wim-recurring-icon" title="<?php esc_attr_e( 'Recurring invoice', 'wp-invoice-manager' ); ?>"></span>
-							<?php endif; ?>
-							<strong><?php echo esc_html( $inv['number'] ); ?></strong>
-						</span>
+						<span class="wim-invoice-number"><strong><?php echo esc_html( $inv['number'] ); ?></strong></span>
 					</td>
 					<td>
 						<?php echo esc_html( $inv['client_name'] ); ?><br>
@@ -189,6 +198,25 @@ $bulk_statuses = WP_IM_Invoice::get_statuses();
 						</span>
 					</td>
 					<td class="col-amount"><?php echo esc_html( $symbol . number_format( $inv['totals']['total'], 2 ) ); ?></td>
+					<td>
+						<?php
+						// Plan: the recurring frequency (an invoice generated from a
+						// recurring template shows its template's), else a one-off
+						// "Lifetime" payment.
+						$plan_key = $inv['recurring_frequency'];
+						if ( ! $plan_key && $inv['recurring_parent'] ) {
+							$plan_key = get_post_meta( (int) $inv['recurring_parent'], WP_IM_Invoice::META_RECURRING_FREQUENCY, true );
+						}
+						$plan_labels = array(
+							'monthly'   => __( 'Monthly', 'wp-invoice-manager' ),
+							'quarterly' => __( 'Quarterly', 'wp-invoice-manager' ),
+							'yearly'    => __( 'Yearly', 'wp-invoice-manager' ),
+						);
+						?>
+						<span class="wim-plan wim-plan-<?php echo esc_attr( $plan_key ? $plan_key : 'lifetime' ); ?>">
+							<?php echo esc_html( $plan_key ? ( $plan_labels[ $plan_key ] ?? ucfirst( $plan_key ) ) : __( 'Lifetime', 'wp-invoice-manager' ) ); ?>
+						</span>
+					</td>
 					<td>
 						<div class="col-actions">
 							<a href="<?php echo esc_url( $print_url ); ?>"
@@ -250,7 +278,7 @@ $bulk_statuses = WP_IM_Invoice::get_statuses();
 				<?php endforeach; ?>
 			<?php else : ?>
 				<tr>
-					<td colspan="8">
+					<td colspan="9">
 						<div class="wim-table-empty">
 							<span class="dashicons dashicons-media-spreadsheet"></span>
 							<p><?php esc_html_e( 'No invoices found. Create your first invoice!', 'wp-invoice-manager' ); ?></p>
@@ -265,6 +293,17 @@ $bulk_statuses = WP_IM_Invoice::get_statuses();
 		</table>
 	</div>
 	</div>
+	<?php
+	$has_recurring = (bool) array_filter( (array) $invoices, function ( $p ) {
+		return '' !== (string) get_post_meta( $p->ID, WP_IM_Invoice::META_RECURRING_FREQUENCY, true );
+	} );
+	if ( $has_recurring ) :
+	?>
+		<p class="wim-row-legend">
+			<span class="wim-row-legend__swatch" aria-hidden="true"></span>
+			<?php esc_html_e( 'Recurring invoice — creates the next invoice automatically. Hover a row to see when.', 'wp-invoice-manager' ); ?>
+		</p>
+	<?php endif; ?>
 	</form>
 
 </div>

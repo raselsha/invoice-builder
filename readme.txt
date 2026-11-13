@@ -4,7 +4,7 @@ Tags:              invoice, billing, payment, PDF, client management
 Requires at least: 5.8
 Tested up to:      6.5
 Requires PHP:      7.4
-Stable tag:        1.7.0
+Stable tag:        1.7.1
 License:           GPLv2 or later
 License URI:       https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -78,6 +78,14 @@ Invoice meta is stored as WordPress post meta on the `wp_invoice` custom post ty
 Yes – all strings use `__()` / `_e()` with the `wp-invoice-manager` text domain.
 
 == Changelog ==
+
+= 1.7.1 =
+* Invoice list: new "Plan" column between Amount and Actions — Monthly /
+  Quarterly / Yearly for recurring invoices (and invoices generated from
+  them), "Lifetime" for one-off invoices.
+* Invoice list: recurring invoices are now marked by a tinted row with a blue
+  edge (hover for the next invoice date) instead of an icon in front of the
+  number, so all invoice numbers line up.
 
 = 1.7.0 =
 * New: online payments with Stripe. "Pay Now" on a shared invoice now opens
