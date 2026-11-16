@@ -4,7 +4,7 @@ Tags:              invoice, billing, payment, PDF, client management
 Requires at least: 5.8
 Tested up to:      6.5
 Requires PHP:      7.4
-Stable tag:        1.7.1
+Stable tag:        1.7.2
 License:           GPLv2 or later
 License URI:       https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -78,6 +78,11 @@ Invoice meta is stored as WordPress post meta on the `wp_invoice` custom post ty
 Yes – all strings use `__()` / `_e()` with the `wp-invoice-manager` text domain.
 
 == Changelog ==
+
+= 1.7.2 =
+* Fix: "Set up webhook" failed with "you must specify 'api_version'" when the
+  Stripe key comes from Easy Digital Downloads' Stripe Connect account. The
+  webhook endpoint is now created with an explicit API version.
 
 = 1.7.1 =
 * Invoice list: new "Plan" column between Amount and Actions — Monthly /

@@ -207,6 +207,8 @@ class WP_IM_Stripe {
 		$url  = rest_url( 'wim/v1/stripe-webhook' );
 		$data = self::request( 'POST', '/webhook_endpoints', array(
 			'url'            => $url,
+			// Required when the key belongs to a connected account (EDD's Stripe Connect).
+			'api_version'    => '2024-06-20',
 			'enabled_events' => array( 'checkout.session.completed', 'checkout.session.async_payment_succeeded' ),
 			'description'    => 'WP Invoice Manager (invoices + payment links)',
 		), $mode );
